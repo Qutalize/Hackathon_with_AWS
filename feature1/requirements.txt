@@ -1,0 +1,17 @@
+# AWS SDK
+boto3>=1.34.0
+
+# SNS API クライアント
+google-api-python-client>=2.100.0  # YouTube Data API
+tweepy>=4.14.0                      # Twitter/X API
+requests>=2.31.0                    # Instagram Graph API / 汎用HTTP
+
+# LLM API
+google-generativeai>=0.8.0          # Google Gemini API
+
+# データ処理
+pandas>=2.1.0
+
+# テスト
+pytest>=7.4.0
+moto>=5.0.0  # AWSモック
