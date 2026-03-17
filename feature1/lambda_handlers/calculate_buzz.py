@@ -1,13 +1,13 @@
 """
 Lambda② ハンドラー: バズ度計算 + AWS SNS通知
-Lambda① の完了後に実行される。
+DynamoDB Streams から自動トリガーされる。
 
 新アーキテクチャ:
-  Lambda①の結果 → Lambda②(バズ度計算+通知) → AWS SNS
+  Lambda①がDynamoDBに保存 → Streams発火 → Lambda②(バズ度計算+通知)
   ※ S3へのデータ投下は DynamoDB Streams → Firehose で自動化
 
 処理フロー:
-1. Lambda① からの投稿データ（or DynamoDB）を取得
+1. DynamoDB Streams のイベントから新規INSERTされた投稿データを取得
 2. バズ度（バイラルスコア）を計算
 3. 推奨発注量を算出
 4. AWS SNS で担当者に在庫増加推奨を通知
@@ -18,6 +18,7 @@ import math
 import sys
 import os
 from datetime import datetime, timezone
+from decimal import Decimal
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -74,29 +75,91 @@ def _log_normalize(value: float, max_val: float = 10000) -> float:
     return min(math.log1p(value) / math.log1p(max_val), 1.0)
 
 
+def _parse_dynamodb_stream_records(event: dict) -> list[dict]:
+    """
+    DynamoDB Streams のイベントからフラットな投稿データに変換する。
+    INSERT イベントのみを処理し、MODIFY は無視する（無限ループ防止）。
+    また、既にバズ度計算済み（step2_processed=True）のデータもスキップする。
+    """
+    posts = []
+    for record in event.get("Records", []):
+        event_name = record.get("eventName", "")
+
+        # INSERT のみ処理（Lambda②自身のMODIFYによる再発火を防止）
+        if event_name != "INSERT":
+            continue
+
+        new_image = record.get("dynamodb", {}).get("NewImage", {})
+        if not new_image:
+            continue
+
+        # DynamoDB の型付きJSON → フラットなdict に変換
+        flat = {}
+        for key, value_dict in new_image.items():
+            flat[key] = _parse_dynamodb_value(value_dict)
+
+        # 既にバズ度計算済みならスキップ（二重処理防止）
+        if flat.get("step2_processed"):
+            continue
+
+        posts.append(flat)
+
+    return posts
+
+
+def _parse_dynamodb_value(value_dict: dict):
+    """DynamoDB の型情報を解析して通常の値に変換"""
+    if "S" in value_dict:
+        return value_dict["S"]
+    elif "N" in value_dict:
+        num = value_dict["N"]
+        return float(num) if "." in num else int(num)
+    elif "BOOL" in value_dict:
+        return value_dict["BOOL"]
+    elif "NULL" in value_dict:
+        return None
+    elif "L" in value_dict:
+        return [_parse_dynamodb_value(v) for v in value_dict["L"]]
+    elif "M" in value_dict:
+        return {k: _parse_dynamodb_value(v) for k, v in value_dict["M"].items()}
+    else:
+        return str(value_dict)
+
+
 def handler(event, context):
     """
     Lambda② ハンドラー: バズ度計算 + AWS SNS通知
+
+    トリガー:
+      - DynamoDB Streams（本番）: Lambda①がDynamoDBに保存 → 自動発火
+      - 直接呼び出し（テスト）: event["posts"] にデータを渡す
     """
     logger.info("📥 Lambda② 開始: バズ度計算 + 通知")
 
     try:
         # ===== 1. 投稿データ取得 =====
-        # Lambda① からの直接引き継ぎ or DynamoDB から取得
-        posts = event.get("posts", [])
-
-        if not posts:
+        # DynamoDB Streams からの場合と、直接呼び出しの場合の両方に対応
+        if "Records" in event:
+            # DynamoDB Streams からのトリガー（本番）
+            posts = _parse_dynamodb_stream_records(event)
+            logger.info(f"📡 DynamoDB Streams から {len(posts)} 件の新規INSERTを検出")
+        elif "posts" in event:
+            # 直接呼び出し（テスト/デモモード）
+            posts = event.get("posts", [])
+            logger.info(f"📋 直接呼び出しで {len(posts)} 件のデータを受信")
+        else:
+            # DynamoDB から全件取得（フォールバック）
             dynamo = DynamoClient(
                 table_name=Config.DYNAMODB_TABLE_NAME,
                 region=Config.AWS_REGION,
                 demo_mode=Config.DEMO_MODE,
             )
             posts = dynamo.get_all_posts()
+            logger.info(f"📦 DynamoDB から {len(posts)} 件のデータを取得")
 
         if not posts:
+            logger.info("処理対象データなし（INSERT以外 or 処理済み）")
             return _response(200, {"message": "処理対象データなし", "count": 0})
-
-        logger.info(f"📊 {len(posts)} 件の投稿を処理します")
 
         # ===== 2. バズ度計算 + DynamoDB更新 =====
         dynamo = DynamoClient(
@@ -117,7 +180,9 @@ def handler(event, context):
                 "processed_at": datetime.now(timezone.utc).isoformat(),
             }
 
-            # DynamoDB を更新（→ Streams → Firehose → S3 は自動）
+            # DynamoDB を更新
+            # ※ この MODIFY イベントは handler 冒頭で INSERT のみフィルタしているため
+            #   無限ループにはならない
             post_id = post.get("post_id", "")
             dynamo.update_post(post_id, update)
 
