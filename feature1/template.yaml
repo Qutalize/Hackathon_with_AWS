@@ -204,6 +204,14 @@ Resources:
             TableName: !Ref SNSDataTable
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt RestockNotificationTopic.TopicName
+      Events:
+        DynamoDBEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt SNSDataTable.StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 100
+            MaximumBatchingWindowInSeconds: 10
 
 Outputs:
   SNSDataTableName:
