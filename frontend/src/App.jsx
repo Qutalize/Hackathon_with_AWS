@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const styles = {
   container: {
@@ -31,8 +31,27 @@ const styles = {
     fontSize: "14px",
     color: "#6b7280",
     textAlign: "center",
-    marginBottom: "32px",
+    marginBottom: "24px",
   },
+  tabContainer: {
+    display: "flex",
+    borderBottom: "2px solid #e5e7eb",
+    marginBottom: "24px",
+  },
+  tab: (active) => ({
+    flex: 1,
+    padding: "10px",
+    textAlign: "center",
+    fontWeight: "600",
+    fontSize: "14px",
+    cursor: "pointer",
+    border: "none",
+    background: "none",
+    color: active ? "#6366f1" : "#6b7280",
+    borderBottom: active ? "2px solid #6366f1" : "2px solid transparent",
+    marginBottom: "-2px",
+    transition: "color 0.2s",
+  }),
   dropZone: {
     border: "2px dashed #d1d5db",
     borderRadius: "8px",
@@ -205,6 +224,57 @@ const styles = {
     display: "block",
     backgroundColor: "#f9fafb",
   },
+  cameraContainer: {
+    marginBottom: "20px",
+    borderRadius: "8px",
+    overflow: "hidden",
+    border: "1px solid #e5e7eb",
+    backgroundColor: "#000",
+  },
+  cameraVideo: {
+    width: "100%",
+    maxHeight: "300px",
+    display: "block",
+    objectFit: "cover",
+  },
+  cameraControls: {
+    display: "flex",
+    gap: "8px",
+    marginBottom: "16px",
+  },
+  captureButton: {
+    flex: 1,
+    padding: "12px",
+    backgroundColor: "#6366f1",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "15px",
+    fontWeight: "600",
+    cursor: "pointer",
+  },
+  stopButton: {
+    padding: "12px 16px",
+    backgroundColor: "#ef4444",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "8px",
+    fontSize: "15px",
+    fontWeight: "600",
+    cursor: "pointer",
+  },
+  startCameraButton: {
+    width: "100%",
+    padding: "32px 20px",
+    border: "2px dashed #d1d5db",
+    borderRadius: "8px",
+    backgroundColor: "#fafafa",
+    cursor: "pointer",
+    marginBottom: "20px",
+    fontSize: "15px",
+    color: "#374151",
+    fontWeight: "500",
+  },
 };
 
 function formatFileSize(bytes) {
@@ -213,18 +283,81 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-
 export default function App() {
+  const [tab, setTab] = useState("file"); // "file" | "camera"
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [status, setStatus] = useState(null); // { type: 'info'|'success'|'error', message: string }
+  const [status, setStatus] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadedUrl, setUploadedUrl] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [copied, setCopied] = useState(false);
   const [btnHover, setBtnHover] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
   const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  // カメラ停止
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setCameraActive(false);
+  };
+
+  // タブ切替時にカメラ停止・状態リセット
+  const handleTabChange = (newTab) => {
+    stopCamera();
+    setTab(newTab);
+    handleClear();
+  };
+
+  // アンマウント時にカメラ停止
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setCameraActive(true);
+      setStatus(null);
+    } catch {
+      setStatus({ type: "error", message: "カメラへのアクセスが拒否されました。" });
+    }
+  };
+
+  const handleCapture = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+
+    canvas.toBlob((blob) => {
+      const fileName = `camera_${Date.now()}.jpg`;
+      const file = new File([blob], fileName, { type: "image/jpeg" });
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(blob));
+      setUploadedUrl(null);
+      setProgress(0);
+      setStatus(null);
+      stopCamera();
+    }, "image/jpeg");
+  };
 
   const handleFileSelect = (file) => {
     if (!file) return;
@@ -287,7 +420,6 @@ export default function App() {
       setProgress(10);
       setStatus({ type: "info", message: "Getting upload URL..." });
 
-      // Step1: LambdaからPre-signed URLを取得
       const response = await fetch(apiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -300,7 +432,6 @@ export default function App() {
       let data = await response.json();
       console.log("Lambda response:", data);
 
-      // API GatewayがProxy統合でない場合、bodyが文字列でネストされる
       if (typeof data.body === "string") {
         data = JSON.parse(data.body);
       }
@@ -312,7 +443,6 @@ export default function App() {
       setProgress(50);
       setStatus({ type: "info", message: "Uploading to S3..." });
 
-      // Step2: Pre-signed URLを使ってS3に直接PUT
       const s3Response = await fetch(data.presignedUrl, {
         method: "PUT",
         body: selectedFile,
@@ -349,43 +479,82 @@ export default function App() {
         <h1 style={styles.title}>Image Uploader</h1>
         <p style={styles.subtitle}>Upload images directly to AWS S3</p>
 
-        {/* Drop Zone */}
-        {!selectedFile && (
-          <div
-            style={{
-              ...styles.dropZone,
-              ...(isDragging ? styles.dropZoneHover : {}),
-            }}
-            onClick={() => fileInputRef.current?.click()}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-          >
-            <div style={styles.dropZoneIcon}>
-              {isDragging ? "📂" : "🖼️"}
-            </div>
-            <div style={{ fontSize: "15px", color: "#374151", fontWeight: "500" }}>
-              Drag & drop your image here
-            </div>
-            <div style={styles.dropZoneText}>
-              or{" "}
-              <span style={styles.browseLink}>browse files</span>
-            </div>
-            <div style={{ ...styles.dropZoneText, marginTop: "6px", fontSize: "12px" }}>
-              Supports: JPG, PNG, GIF, WEBP, SVG
-            </div>
-          </div>
+        {/* Tabs */}
+        <div style={styles.tabContainer}>
+          <button style={styles.tab(tab === "file")} onClick={() => handleTabChange("file")}>
+            ファイル選択
+          </button>
+          <button style={styles.tab(tab === "camera")} onClick={() => handleTabChange("camera")}>
+            カメラで撮影
+          </button>
+        </div>
+
+        {/* ---- ファイル選択タブ ---- */}
+        {tab === "file" && (
+          <>
+            {!selectedFile && (
+              <div
+                style={{ ...styles.dropZone, ...(isDragging ? styles.dropZoneHover : {}) }}
+                onClick={() => fileInputRef.current?.click()}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                <div style={styles.dropZoneIcon}>{isDragging ? "📂" : "🖼️"}</div>
+                <div style={{ fontSize: "15px", color: "#374151", fontWeight: "500" }}>
+                  Drag & drop your image here
+                </div>
+                <div style={styles.dropZoneText}>
+                  or <span style={styles.browseLink}>browse files</span>
+                </div>
+                <div style={{ ...styles.dropZoneText, marginTop: "6px", fontSize: "12px" }}>
+                  Supports: JPG, PNG, GIF, WEBP, SVG
+                </div>
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              style={styles.fileInput}
+              onChange={handleInputChange}
+            />
+          </>
         )}
 
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          style={styles.fileInput}
-          onChange={handleInputChange}
-        />
+        {/* ---- カメラタブ ---- */}
+        {tab === "camera" && !selectedFile && (
+          <>
+            {!cameraActive ? (
+              <button style={styles.startCameraButton} onClick={startCamera}>
+                📷　カメラを起動する
+              </button>
+            ) : (
+              <>
+                <div style={styles.cameraContainer}>
+                  <video
+                    ref={videoRef}
+                    style={styles.cameraVideo}
+                    autoPlay
+                    playsInline
+                    muted
+                  />
+                </div>
+                <div style={styles.cameraControls}>
+                  <button style={styles.captureButton} onClick={handleCapture}>
+                    撮影する
+                  </button>
+                  <button style={styles.stopButton} onClick={stopCamera}>
+                    停止
+                  </button>
+                </div>
+              </>
+            )}
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+          </>
+        )}
 
-        {/* Image Preview */}
+        {/* 共通: プレビュー */}
         {selectedFile && previewUrl && (
           <div style={styles.previewContainer}>
             <img src={previewUrl} alt="Preview" style={styles.previewImage} />
@@ -400,7 +569,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Progress Bar */}
+        {/* 共通: プログレスバー */}
         {uploading && progress > 0 && (
           <div style={styles.progressContainer}>
             <div style={styles.progressBar}>
@@ -410,12 +579,12 @@ export default function App() {
           </div>
         )}
 
-        {/* Status Message */}
+        {/* 共通: ステータス */}
         {status && (
           <div style={styles.statusBox(status.type)}>{status.message}</div>
         )}
 
-        {/* Upload Button */}
+        {/* 共通: アップロードボタン */}
         <button
           style={{
             ...styles.uploadButton,
@@ -430,7 +599,7 @@ export default function App() {
           {uploading ? "Uploading..." : "Upload Image"}
         </button>
 
-        {/* Result */}
+        {/* 共通: 結果 */}
         {uploadedUrl && (
           <div style={styles.resultBox}>
             <div style={styles.resultLabel}>Uploaded Image URL</div>
