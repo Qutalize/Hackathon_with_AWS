@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const styles = {
   container: {
@@ -17,7 +17,7 @@ const styles = {
     boxShadow: "0 4px 24px rgba(0, 0, 0, 0.1)",
     padding: "40px",
     width: "100%",
-    maxWidth: "520px",
+    maxWidth: "600px",
     boxSizing: "border-box",
   },
   title: {
@@ -31,12 +31,31 @@ const styles = {
     fontSize: "14px",
     color: "#6b7280",
     textAlign: "center",
-    marginBottom: "32px",
+    marginBottom: "24px",
   },
+  tabContainer: {
+    display: "flex",
+    borderBottom: "2px solid #e5e7eb",
+    marginBottom: "24px",
+  },
+  tab: (active) => ({
+    flex: 1,
+    padding: "10px",
+    textAlign: "center",
+    fontWeight: "600",
+    fontSize: "14px",
+    cursor: "pointer",
+    border: "none",
+    background: "none",
+    color: active ? "#6366f1" : "#6b7280",
+    borderBottom: active ? "2px solid #6366f1" : "2px solid transparent",
+    marginBottom: "-2px",
+    transition: "color 0.2s",
+  }),
   dropZone: {
     border: "2px dashed #d1d5db",
     borderRadius: "8px",
-    padding: "32px 20px",
+    padding: "24px 20px",
     textAlign: "center",
     cursor: "pointer",
     transition: "border-color 0.2s, background-color 0.2s",
@@ -59,43 +78,54 @@ const styles = {
   fileInput: {
     display: "none",
   },
-  browseLink: {
-    color: "#6366f1",
-    fontWeight: "600",
-    cursor: "pointer",
-    textDecoration: "underline",
-  },
-  previewContainer: {
+  previewGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+    gap: "16px",
     marginBottom: "20px",
+  },
+  previewCard: {
+    border: "1px solid #e5e7eb",
     borderRadius: "8px",
     overflow: "hidden",
-    border: "1px solid #e5e7eb",
+    position: "relative",
+    backgroundColor: "#f9fafb",
   },
   previewImage: {
     width: "100%",
-    maxHeight: "300px",
-    objectFit: "contain",
+    height: "120px",
+    objectFit: "cover",
     display: "block",
-    backgroundColor: "#f9fafb",
   },
   previewInfo: {
-    padding: "10px 14px",
-    backgroundColor: "#f9fafb",
-    borderTop: "1px solid #e5e7eb",
-    fontSize: "13px",
-    color: "#6b7280",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
+    padding: "8px",
+    fontSize: "12px",
+    color: "#374151",
+    backgroundColor: "#fff",
+  },
+  fileName: {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    fontWeight: "600",
+    marginBottom: "4px",
   },
   clearBtn: {
-    background: "none",
+    position: "absolute",
+    top: "4px",
+    right: "4px",
+    background: "rgba(0,0,0,0.6)",
+    color: "white",
     border: "none",
-    color: "#ef4444",
+    borderRadius: "50%",
+    width: "24px",
+    height: "24px",
     cursor: "pointer",
-    fontSize: "13px",
-    fontWeight: "500",
-    padding: "0",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "14px",
+    zIndex: 10,
   },
   uploadButton: {
     width: "100%",
@@ -118,10 +148,10 @@ const styles = {
     backgroundColor: "#4f46e5",
   },
   progressContainer: {
-    marginBottom: "16px",
+    marginTop: "6px",
   },
   progressBar: {
-    height: "6px",
+    height: "4px",
     backgroundColor: "#e5e7eb",
     borderRadius: "9999px",
     overflow: "hidden",
@@ -133,78 +163,121 @@ const styles = {
     transition: "width 0.3s ease",
   },
   progressText: {
-    fontSize: "12px",
+    fontSize: "10px",
     color: "#6b7280",
-    marginTop: "6px",
-    textAlign: "center",
+    marginTop: "4px",
+    textAlign: "right",
   },
   statusBox: (type) => ({
     padding: "12px 16px",
     borderRadius: "8px",
     fontSize: "14px",
     marginBottom: "16px",
-    backgroundColor:
-      type === "success" ? "#f0fdf4" : type === "error" ? "#fef2f2" : "#eff6ff",
-    color:
-      type === "success" ? "#166534" : type === "error" ? "#991b1b" : "#1e40af",
-    border: `1px solid ${
-      type === "success" ? "#bbf7d0" : type === "error" ? "#fecaca" : "#bfdbfe"
-    }`,
+    backgroundColor: type === "success" ? "#f0fdf4" : type === "error" ? "#fef2f2" : "#eff6ff",
+    color: type === "success" ? "#166534" : type === "error" ? "#991b1b" : "#1e40af",
+    border: `1px solid ${type === "success" ? "#bbf7d0" : type === "error" ? "#fecaca" : "#bfdbfe"}`,
   }),
-  resultBox: {
-    backgroundColor: "#f0fdf4",
-    border: "1px solid #bbf7d0",
-    borderRadius: "8px",
-    padding: "16px",
-    marginTop: "16px",
-  },
-  resultLabel: {
-    fontSize: "12px",
-    fontWeight: "600",
-    color: "#166534",
-    marginBottom: "8px",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  },
   resultUrlContainer: {
     display: "flex",
-    gap: "8px",
+    gap: "4px",
     alignItems: "center",
+    marginTop: "6px",
   },
   resultUrl: {
-    fontSize: "13px",
+    fontSize: "10px",
     color: "#374151",
-    wordBreak: "break-all",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
     flex: 1,
-    backgroundColor: "#ffffff",
-    border: "1px solid #d1fae5",
+    backgroundColor: "#f3f4f6",
+    border: "1px solid #e5e7eb",
     borderRadius: "4px",
-    padding: "6px 10px",
+    padding: "4px 6px",
   },
   copyBtn: {
-    padding: "6px 12px",
+    padding: "4px 8px",
     backgroundColor: "#6366f1",
     color: "#ffffff",
     border: "none",
-    borderRadius: "6px",
+    borderRadius: "4px",
+    fontSize: "10px",
+    cursor: "pointer",
+  },
+  cameraContainer: {
+    marginBottom: "20px",
+    borderRadius: "8px",
+    overflow: "hidden",
+    backgroundColor: "#000",
+  },
+  cameraVideo: {
+    width: "100%",
+    maxHeight: "300px",
+    display: "block",
+    objectFit: "cover",
+  },
+  cameraControls: {
+    display: "flex",
+    gap: "8px",
+    marginBottom: "16px",
+  },
+  captureButton: {
+    flex: 1,
+    padding: "12px",
+    backgroundColor: "#6366f1",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  stopButton: {
+    padding: "12px 16px",
+    backgroundColor: "#ef4444",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer",
+  },
+  startCameraButton: {
+    width: "100%",
+    padding: "32px 20px",
+    border: "2px dashed #d1d5db",
+    borderRadius: "8px",
+    backgroundColor: "#fafafa",
+    cursor: "pointer",
+    marginBottom: "20px",
+    fontSize: "15px",
+  },
+  fileCount: {
     fontSize: "12px",
     fontWeight: "600",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
+    color: "#4b5563",
+    marginBottom: "12px",
+    textAlign: "right",
   },
-  resultImageContainer: {
-    marginTop: "12px",
-    borderRadius: "6px",
-    overflow: "hidden",
-    border: "1px solid #d1fae5",
-  },
-  resultImage: {
-    width: "100%",
-    maxHeight: "200px",
-    objectFit: "contain",
-    display: "block",
+  stockContainer: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
     backgroundColor: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "8px",
+    padding: "12px 16px",
+    marginBottom: "16px",
   },
+  stockLabel: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#374151",
+  },
+  stockInput: {
+    width: "100px",
+    padding: "8px",
+    borderRadius: "6px",
+    border: "1px solid #d1d5db",
+    fontSize: "15px",
+    textAlign: "right",
+  }
 };
 
 function formatFileSize(bytes) {
@@ -213,238 +286,397 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// OCR精度を上げるため、解像度と画質の設定を高くしています（元のサイズが大きすぎる場合のリサイズ用）
+const compressImageBase64 = (file, maxWidth = 1600) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ratio = maxWidth / img.width;
+        canvas.width = maxWidth;
+        canvas.height = img.height * (ratio < 1 ? ratio : 1);
+        if (ratio >= 1) canvas.width = img.width;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.9)); // 文字が潰れないよう品質を0.9に設定
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
 
 export default function App() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [status, setStatus] = useState(null); // { type: 'info'|'success'|'error', message: string }
+  const [tab, setTab] = useState("file");
+  const [filesState, setFilesState] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [uploadedUrl, setUploadedUrl] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [cameraActive, setCameraActive] = useState(false);
+  const [globalStatus, setGlobalStatus] = useState(null);
   const [btnHover, setBtnHover] = useState(false);
-  const fileInputRef = useRef(null);
+  const [btnHover2, setBtnHover2] = useState(false);
+  const [stockQuantity, setStockQuantity] = useState(0);
 
-  const handleFileSelect = (file) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setStatus({ type: "error", message: "Please select a valid image file." });
+  const fileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setCameraActive(false);
+  };
+
+  const handleTabChange = (newTab) => {
+    stopCamera();
+    setTab(newTab);
+    setGlobalStatus(null);
+  };
+
+  useEffect(() => {
+    return () => stopCamera();
+  }, []);
+
+  const startCamera = async () => {
+    if (filesState.length >= 3) {
+      setGlobalStatus({ type: "error", message: "すでに最大3枚選択されています。" });
       return;
     }
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    setStatus(null);
-    setUploadedUrl(null);
-    setProgress(0);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) videoRef.current.srcObject = stream;
+      setCameraActive(true);
+      setGlobalStatus(null);
+    } catch {
+      setGlobalStatus({ type: "error", message: "カメラへのアクセスが拒否されました。" });
+    }
+  };
+
+  const handleFilesSelect = (newFilesList) => {
+    const validFiles = Array.from(newFilesList).filter(f => f.type.startsWith("image/"));
+    if (validFiles.length === 0) return;
+
+    setFilesState(prev => {
+      const remainingSlots = 3 - prev.length;
+      if (remainingSlots <= 0) {
+        setGlobalStatus({ type: "error", message: "最大3枚までです。" });
+        return prev;
+      }
+      const filesToAdd = validFiles.slice(0, remainingSlots);
+      if (validFiles.length > remainingSlots) {
+        setGlobalStatus({ type: "info", message: "最大3枚までです。残りは無視されました。" });
+      } else {
+        setGlobalStatus(null);
+      }
+      const newItems = filesToAdd.map(f => ({
+        id: Math.random().toString(36).substring(7),
+        file: f,
+        previewUrl: URL.createObjectURL(f),
+        status: null,
+        progress: 0,
+        uploadedUrl: null
+      }));
+      return [...prev, ...newItems];
+    });
+  };
+
+  const handleCapture = () => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext("2d").drawImage(video, 0, 0);
+
+    canvas.toBlob((blob) => {
+      const file = new File([blob], `camera_${Date.now()}.jpg`, { type: "image/jpeg" });
+      handleFilesSelect([file]);
+      if (filesState.length + 1 >= 3) {
+        stopCamera();
+        setTab("file");
+      }
+    }, "image/jpeg");
   };
 
   const handleInputChange = (e) => {
-    handleFileSelect(e.target.files[0]);
+    handleFilesSelect(e.target.files);
+    e.target.value = "";
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    handleFileSelect(e.dataTransfer.files[0]);
+    if (filesState.length < 3) handleFilesSelect(e.dataTransfer.files);
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
+  const handleRemoveFile = (id) => {
+    setFilesState(prev => prev.filter(item => {
+      if (item.id === id) {
+        URL.revokeObjectURL(item.previewUrl);
+        return false;
+      }
+      return true;
+    }));
+    setGlobalStatus(null);
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
+  const updateFileState = (id, updates) => {
+    setFilesState(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
   };
 
-  const handleClear = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    setStatus(null);
-    setUploadedUrl(null);
-    setProgress(0);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+  // --- Bedrockへの分析とS3保存を同時非同期で行う処理 ---
+  const handleProcessAll = async () => {
+    const filesToProcess = filesState.filter(f => !f.analysis_result);
+    if (filesToProcess.length === 0) return;
 
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      setStatus({ type: "error", message: "Please select an image first." });
+    const bedrockApiUrl = import.meta.env.VITE_BEDROCK_API_URL;
+    if (!bedrockApiUrl) {
+      setGlobalStatus({ type: "error", message: ".env に VITE_BEDROCK_API_URL を設定してください。" });
       return;
     }
 
-    const apiUrl = import.meta.env.VITE_API_URL;
-    if (!apiUrl) {
-      setStatus({
-        type: "error",
-        message: "VITE_API_URL is not set. Create a .env file based on .env.example.",
-      });
-      return;
-    }
+    setUploading(true);
+    setGlobalStatus({ type: "info", message: "AI分析とS3保存を並行して実行中..." });
+    filesToProcess.forEach(f => updateFileState(f.id, { status: { type: "info", message: "処理を開始しました..." }, progress: 10 }));
 
-    try {
-      setUploading(true);
-      setProgress(10);
-      setStatus({ type: "info", message: "Getting upload URL..." });
+    // フロントエンドで共通のSSID（ミリ秒タイムスタンプ）を生成し、共有する
+    const ssid = Date.now();
 
-      // Step1: LambdaからPre-signed URLを取得
-      const response = await fetch(apiUrl, {
+    // 1. Bedrock分析用プロミス (非同期)
+    const bedrockPromise = (async () => {
+      const base64Images = await Promise.all(
+        filesToProcess.map(async (fileObj) => {
+          const base64Image = await compressImageBase64(fileObj.file);
+          return base64Image;
+        })
+      );
+      
+      // 画像圧縮が終わったら、時間のかかるBedrock待機のステータスへ更新
+      filesToProcess.forEach(f => updateFileState(f.id, { 
+        status: { type: "info", message: "Bedrockで分析中..." }, 
+        progress: 80 
+      }));
+
+      const res = await fetch(bedrockApiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName: selectedFile.name,
-          fileType: selectedFile.type,
-        }),
+        // ssidを追加でバックエンドに渡す
+        body: JSON.stringify({ images: base64Images, stock: stockQuantity, ssid: ssid }),
       });
+      
+      let data = await res.json();
+      if (typeof data.body === "string") data = JSON.parse(data.body);
+      if (!res.ok || data.error) throw new Error(data.error || `Bedrock Error ${res.status}`);
+      
+      return data.analysis_result;
+    })();
 
-      let data = await response.json();
-      console.log("Lambda response:", data);
+    // 2. S3アップロード用プロミス (非同期)
+    const s3Promise = (async () => {
+      const s3ApiUrl = import.meta.env.VITE_API_URL;
+      if (!s3ApiUrl) return null;
 
-      // API GatewayがProxy統合でない場合、bodyが文字列でネストされる
-      if (typeof data.body === "string") {
-        data = JSON.parse(data.body);
-      }
+      await Promise.all(
+        filesToProcess.map(async (fileObj, index) => {
+          try {
+            const ext = fileObj.file.name.split('.').pop() || "jpg";
+            const newFileName = `${ssid}_${index + 1}.${ext}`;
+            
+            const presignRes = await fetch(s3ApiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ fileName: newFileName, fileType: fileObj.file.type }),
+            });
+            let presignData = await presignRes.json();
+            if (typeof presignData.body === "string") presignData = JSON.parse(presignData.body);
+            if (!presignRes.ok || presignData.error) throw new Error(presignData.error || `S3 API Error ${presignRes.status}`);
 
-      if (!response.ok || data.error) {
-        throw new Error(data.error || `Server returned ${response.status}`);
-      }
+            const s3Res = await fetch(presignData.presignedUrl, { method: "PUT", body: fileObj.file });
+            if (!s3Res.ok) throw new Error(`S3 Put Error ${s3Res.status}`);
 
-      setProgress(50);
-      setStatus({ type: "info", message: "Uploading to S3..." });
+            updateFileState(fileObj.id, { uploadedUrl: presignData.url });
+          } catch (err) {
+            console.error(`S3 upload failed for ${fileObj.file.name}`, err);
+          }
+        })
+      );
+    })();
 
-      // Step2: Pre-signed URLを使ってS3に直接PUT
-      const s3Response = await fetch(data.presignedUrl, {
-        method: "PUT",
-        body: selectedFile,
+    // 3. 両方の並行処理の完了を待つ
+    try {
+      // どちらか一方が早く終わっても、両方が終わるまで待機
+      const [analysisResult] = await Promise.all([bedrockPromise, s3Promise]);
+      
+      filesToProcess.forEach(f => {
+        updateFileState(f.id, { 
+          status: { type: "success", message: "分析＆保存 完了!" }, 
+          progress: 100, 
+          analysis_result: analysisResult 
+        });
       });
-
-      if (!s3Response.ok) {
-        throw new Error(`S3 upload failed with status ${s3Response.status}`);
-      }
-
-      setProgress(100);
-      setUploadedUrl(data.url);
-      setStatus({ type: "success", message: "Image uploaded successfully!" });
+      setGlobalStatus({ type: "success", message: "すべての処理が完了しました！" });
     } catch (err) {
-      setStatus({ type: "error", message: `Upload failed: ${err.message}` });
-      setProgress(0);
-    } finally {
-      setUploading(false);
+      filesToProcess.forEach(f => {
+        updateFileState(f.id, { status: { type: "error", message: `分析失敗: ${err.message}` }, progress: 0 });
+      });
+      setGlobalStatus({ type: "error", message: "分析処理でエラーが発生しました。" });
     }
+
+    setUploading(false);
+    setStockQuantity(0);
   };
 
-  const handleCopyUrl = () => {
-    if (!uploadedUrl) return;
-    navigator.clipboard.writeText(uploadedUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  const isButtonDisabled = !selectedFile || uploading;
+  const isBtnDisabled = filesState.filter(f => !f.uploadedUrl && !f.analysis_result).length === 0 || uploading;
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <h1 style={styles.title}>Image Uploader</h1>
-        <p style={styles.subtitle}>Upload images directly to AWS S3</p>
+        <p style={styles.subtitle}>Upload up to 3 images directly to AWS S3</p>
 
-        {/* Drop Zone */}
-        {!selectedFile && (
-          <div
+        <div style={styles.tabContainer}>
+          <button style={styles.tab(tab === "file")} onClick={() => handleTabChange("file")}>ファイル選択</button>
+          <button style={styles.tab(tab === "camera")} onClick={() => handleTabChange("camera")}>カメラで撮影</button>
+        </div>
+
+        {globalStatus && <div style={styles.statusBox(globalStatus.type)}>{globalStatus.message}</div>}
+
+        <div style={styles.fileCount}>選択 : {filesState.length} / 3 枚</div>
+
+        {tab === "file" && filesState.length < 3 && (
+          <>
+            <div
+              style={{ ...styles.dropZone, ...(isDragging ? styles.dropZoneHover : {}) }}
+              onClick={() => fileInputRef.current?.click()}
+              onDrop={handleDrop}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+            >
+              <div style={styles.dropZoneIcon}>{isDragging ? "📂" : "🖼️"}</div>
+              <div style={{ fontSize: "15px", color: "#374151" }}>Drag & drop images here</div>
+              <div style={styles.dropZoneText}>残り {3 - filesState.length} 枚追加可能</div>
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" multiple style={styles.fileInput} onChange={handleInputChange} />
+          </>
+        )}
+
+        {tab === "camera" && filesState.length < 3 && (
+          <>
+            {!cameraActive ? (
+              <button style={styles.startCameraButton} onClick={startCamera}>📷 カメラ起動</button>
+            ) : (
+              <>
+                <div style={styles.cameraContainer}><video ref={videoRef} style={styles.cameraVideo} autoPlay playsInline muted /></div>
+                <div style={styles.cameraControls}>
+                  <button style={styles.captureButton} onClick={handleCapture}>撮影 (残り{3 - filesState.length}枚)</button>
+                  <button style={styles.stopButton} onClick={stopCamera}>停止</button>
+                </div>
+              </>
+            )}
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+          </>
+        )}
+
+        {filesState.length > 0 && (
+          <div style={styles.previewGrid}>
+            {filesState.map((item) => (
+              <div key={item.id} style={styles.previewCard}>
+                {!uploading && !item.uploadedUrl && !item.analysis_result && (
+                  <button style={styles.clearBtn} onClick={() => handleRemoveFile(item.id)}>&times;</button>
+                )}
+                {item.compressedUrl ? (
+                  <div style={{ position: "relative" }}>
+                    <span style={{ position: "absolute", top: 0, left: 0, backgroundColor: "#ef4444", color: "#fff", fontSize: "10px", padding: "2px 6px", fontWeight: "bold", zIndex: 5, borderBottomRightRadius: "4px" }}>圧縮後プレビュー</span>
+                    <img src={item.compressedUrl} alt="Compressed" style={styles.previewImage} />
+                  </div>
+                ) : (
+                  <img src={item.previewUrl} alt="Preview" style={styles.previewImage} />
+                )}
+                <div style={styles.previewInfo}>
+                  <div style={styles.fileName}>{item.file.name}</div>
+                  <div style={{ color: "#6b7280" }}>{formatFileSize(item.file.size)}</div>
+                  {(uploading || item.progress > 0) && !item.analysis_result && (
+                    <div style={styles.progressContainer}>
+                      <div style={styles.progressBar}>
+                        <div style={{ ...styles.progressFill, width: `${item.progress}%` }} />
+                      </div>
+                      {item.status && <div style={styles.progressText}>{item.status.message}</div>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 一つの大きい枠に抽出結果をまとめて出力 */}
+        {(() => {
+          const uniqueResults = [...new Set(filesState.map(f => f.analysis_result).filter(Boolean))];
+          if (uniqueResults.length === 0) return null;
+          
+          return (
+            <div style={{ marginBottom: "20px", padding: "20px", borderRadius: "8px", border: "2px solid #10b981", backgroundColor: "#f0fdf4" }}>
+              <div style={{ fontSize: "15px", fontWeight: "700", color: "#065f46", marginBottom: "12px" }}>✓ 抽出された商品情報（必要に応じて修正可能）</div>
+              {uniqueResults.map((res, idx) => (
+                <textarea
+                  key={idx}
+                  value={res}
+                  onChange={(e) => {
+                    const newVal = e.target.value;
+                    setFilesState(prev => prev.map(f => f.analysis_result === res ? { ...f, analysis_result: newVal } : f));
+                  }}
+                  style={{ width: "100%", fontSize: "14px", padding: "12px", borderRadius: "6px", border: "1px solid #34d399", backgroundColor: "#ffffff", color: "#064e3b", resize: "vertical", minHeight: "150px", boxSizing: "border-box", marginBottom: idx < uniqueResults.length - 1 ? "12px" : "0", lineHeight: "1.5" }}
+                />
+              ))}
+            </div>
+          );
+        })()}
+
+        {filesState.filter(f => !f.uploadedUrl && !f.analysis_result).length > 0 && (
+          <div style={styles.stockContainer}>
+            <label style={styles.stockLabel} htmlFor="stockInput">在庫数を入力（一括）</label>
+            <input
+              id="stockInput"
+              type="number"
+              min="0"
+              style={styles.stockInput}
+              value={stockQuantity}
+              onChange={(e) => setStockQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+              disabled={uploading}
+              placeholder="0"
+            />
+          </div>
+        )}
+
+        <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
+          {/* 実行ボタン（S3保存とBedrock分析を並行して同時に実行） */}
+          <button
             style={{
-              ...styles.dropZone,
-              ...(isDragging ? styles.dropZoneHover : {}),
+              ...styles.uploadButton,
+              backgroundColor: isBtnDisabled ? "#a5b4fc" : "#10b981",
+              marginBottom: "8px",
+              ...(btnHover2 && !isBtnDisabled ? { backgroundColor: "#059669" } : {}),
             }}
-            onClick={() => fileInputRef.current?.click()}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
+            onClick={handleProcessAll}
+            disabled={isBtnDisabled}
+            onMouseEnter={() => setBtnHover2(true)}
+            onMouseLeave={() => setBtnHover2(false)}
           >
-            <div style={styles.dropZoneIcon}>
-              {isDragging ? "📂" : "🖼️"}
-            </div>
-            <div style={{ fontSize: "15px", color: "#374151", fontWeight: "500" }}>
-              Drag & drop your image here
-            </div>
-            <div style={styles.dropZoneText}>
-              or{" "}
-              <span style={styles.browseLink}>browse files</span>
-            </div>
-            <div style={{ ...styles.dropZoneText, marginTop: "6px", fontSize: "12px" }}>
-              Supports: JPG, PNG, GIF, WEBP, SVG
-            </div>
-          </div>
-        )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          style={styles.fileInput}
-          onChange={handleInputChange}
-        />
-
-        {/* Image Preview */}
-        {selectedFile && previewUrl && (
-          <div style={styles.previewContainer}>
-            <img src={previewUrl} alt="Preview" style={styles.previewImage} />
-            <div style={styles.previewInfo}>
-              <span>
-                <strong>{selectedFile.name}</strong> — {formatFileSize(selectedFile.size)}
-              </span>
-              <button style={styles.clearBtn} onClick={handleClear}>
-                Remove
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Progress Bar */}
-        {uploading && progress > 0 && (
-          <div style={styles.progressContainer}>
-            <div style={styles.progressBar}>
-              <div style={{ ...styles.progressFill, width: `${progress}%` }} />
-            </div>
-            <div style={styles.progressText}>{progress}%</div>
-          </div>
-        )}
-
-        {/* Status Message */}
-        {status && (
-          <div style={styles.statusBox(status.type)}>{status.message}</div>
-        )}
-
-        {/* Upload Button */}
-        <button
-          style={{
-            ...styles.uploadButton,
-            ...(isButtonDisabled ? styles.uploadButtonDisabled : {}),
-            ...(btnHover && !isButtonDisabled ? styles.uploadButtonHover : {}),
-          }}
-          onClick={handleUpload}
-          disabled={isButtonDisabled}
-          onMouseEnter={() => setBtnHover(true)}
-          onMouseLeave={() => setBtnHover(false)}
-        >
-          {uploading ? "Uploading..." : "Upload Image"}
-        </button>
-
-        {/* Result */}
-        {uploadedUrl && (
-          <div style={styles.resultBox}>
-            <div style={styles.resultLabel}>Uploaded Image URL</div>
-            <div style={styles.resultUrlContainer}>
-              <span style={styles.resultUrl}>{uploadedUrl}</span>
-              <button style={styles.copyBtn} onClick={handleCopyUrl}>
-                {copied ? "Copied!" : "Copy"}
-              </button>
-            </div>
-            <div style={styles.resultImageContainer}>
-              <img src={uploadedUrl} alt="Uploaded" style={styles.resultImage} />
-            </div>
-          </div>
-        )}
+            {uploading ? "分析中..." : `画像保存 ＆ AI分析を実行 (残り${filesState.filter(f => !f.analysis_result).length}件)`}
+          </button>
+        </div>
       </div>
     </div>
   );
