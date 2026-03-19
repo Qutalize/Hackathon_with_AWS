@@ -17,7 +17,7 @@ const styles = {
     boxShadow: "0 4px 24px rgba(0, 0, 0, 0.1)",
     padding: "40px",
     width: "100%",
-    maxWidth: "520px",
+    maxWidth: "600px",
     boxSizing: "border-box",
   },
   title: {
@@ -55,7 +55,7 @@ const styles = {
   dropZone: {
     border: "2px dashed #d1d5db",
     borderRadius: "8px",
-    padding: "32px 20px",
+    padding: "24px 20px",
     textAlign: "center",
     cursor: "pointer",
     transition: "border-color 0.2s, background-color 0.2s",
@@ -78,43 +78,54 @@ const styles = {
   fileInput: {
     display: "none",
   },
-  browseLink: {
-    color: "#6366f1",
-    fontWeight: "600",
-    cursor: "pointer",
-    textDecoration: "underline",
-  },
-  previewContainer: {
+  previewGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+    gap: "16px",
     marginBottom: "20px",
+  },
+  previewCard: {
+    border: "1px solid #e5e7eb",
     borderRadius: "8px",
     overflow: "hidden",
-    border: "1px solid #e5e7eb",
+    position: "relative",
+    backgroundColor: "#f9fafb",
   },
   previewImage: {
     width: "100%",
-    maxHeight: "300px",
-    objectFit: "contain",
+    height: "120px",
+    objectFit: "cover",
     display: "block",
-    backgroundColor: "#f9fafb",
   },
   previewInfo: {
-    padding: "10px 14px",
-    backgroundColor: "#f9fafb",
-    borderTop: "1px solid #e5e7eb",
-    fontSize: "13px",
-    color: "#6b7280",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
+    padding: "8px",
+    fontSize: "12px",
+    color: "#374151",
+    backgroundColor: "#fff",
+  },
+  fileName: {
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    fontWeight: "600",
+    marginBottom: "4px",
   },
   clearBtn: {
-    background: "none",
+    position: "absolute",
+    top: "4px",
+    right: "4px",
+    background: "rgba(0,0,0,0.6)",
+    color: "white",
     border: "none",
-    color: "#ef4444",
+    borderRadius: "50%",
+    width: "24px",
+    height: "24px",
     cursor: "pointer",
-    fontSize: "13px",
-    fontWeight: "500",
-    padding: "0",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "14px",
+    zIndex: 10,
   },
   uploadButton: {
     width: "100%",
@@ -137,10 +148,10 @@ const styles = {
     backgroundColor: "#4f46e5",
   },
   progressContainer: {
-    marginBottom: "16px",
+    marginTop: "6px",
   },
   progressBar: {
-    height: "6px",
+    height: "4px",
     backgroundColor: "#e5e7eb",
     borderRadius: "9999px",
     overflow: "hidden",
@@ -152,83 +163,51 @@ const styles = {
     transition: "width 0.3s ease",
   },
   progressText: {
-    fontSize: "12px",
+    fontSize: "10px",
     color: "#6b7280",
-    marginTop: "6px",
-    textAlign: "center",
+    marginTop: "4px",
+    textAlign: "right",
   },
   statusBox: (type) => ({
     padding: "12px 16px",
     borderRadius: "8px",
     fontSize: "14px",
     marginBottom: "16px",
-    backgroundColor:
-      type === "success" ? "#f0fdf4" : type === "error" ? "#fef2f2" : "#eff6ff",
-    color:
-      type === "success" ? "#166534" : type === "error" ? "#991b1b" : "#1e40af",
-    border: `1px solid ${
-      type === "success" ? "#bbf7d0" : type === "error" ? "#fecaca" : "#bfdbfe"
-    }`,
+    backgroundColor: type === "success" ? "#f0fdf4" : type === "error" ? "#fef2f2" : "#eff6ff",
+    color: type === "success" ? "#166534" : type === "error" ? "#991b1b" : "#1e40af",
+    border: `1px solid ${type === "success" ? "#bbf7d0" : type === "error" ? "#fecaca" : "#bfdbfe"}`,
   }),
-  resultBox: {
-    backgroundColor: "#f0fdf4",
-    border: "1px solid #bbf7d0",
-    borderRadius: "8px",
-    padding: "16px",
-    marginTop: "16px",
-  },
-  resultLabel: {
-    fontSize: "12px",
-    fontWeight: "600",
-    color: "#166534",
-    marginBottom: "8px",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  },
   resultUrlContainer: {
     display: "flex",
-    gap: "8px",
+    gap: "4px",
     alignItems: "center",
+    marginTop: "6px",
   },
   resultUrl: {
-    fontSize: "13px",
+    fontSize: "10px",
     color: "#374151",
-    wordBreak: "break-all",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
     flex: 1,
-    backgroundColor: "#ffffff",
-    border: "1px solid #d1fae5",
+    backgroundColor: "#f3f4f6",
+    border: "1px solid #e5e7eb",
     borderRadius: "4px",
-    padding: "6px 10px",
+    padding: "4px 6px",
   },
   copyBtn: {
-    padding: "6px 12px",
+    padding: "4px 8px",
     backgroundColor: "#6366f1",
     color: "#ffffff",
     border: "none",
-    borderRadius: "6px",
-    fontSize: "12px",
-    fontWeight: "600",
+    borderRadius: "4px",
+    fontSize: "10px",
     cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
-  resultImageContainer: {
-    marginTop: "12px",
-    borderRadius: "6px",
-    overflow: "hidden",
-    border: "1px solid #d1fae5",
-  },
-  resultImage: {
-    width: "100%",
-    maxHeight: "200px",
-    objectFit: "contain",
-    display: "block",
-    backgroundColor: "#f9fafb",
   },
   cameraContainer: {
     marginBottom: "20px",
     borderRadius: "8px",
     overflow: "hidden",
-    border: "1px solid #e5e7eb",
     backgroundColor: "#000",
   },
   cameraVideo: {
@@ -249,8 +228,6 @@ const styles = {
     color: "#ffffff",
     border: "none",
     borderRadius: "8px",
-    fontSize: "15px",
-    fontWeight: "600",
     cursor: "pointer",
   },
   stopButton: {
@@ -259,8 +236,6 @@ const styles = {
     color: "#ffffff",
     border: "none",
     borderRadius: "8px",
-    fontSize: "15px",
-    fontWeight: "600",
     cursor: "pointer",
   },
   startCameraButton: {
@@ -272,9 +247,37 @@ const styles = {
     cursor: "pointer",
     marginBottom: "20px",
     fontSize: "15px",
-    color: "#374151",
-    fontWeight: "500",
   },
+  fileCount: {
+    fontSize: "12px",
+    fontWeight: "600",
+    color: "#4b5563",
+    marginBottom: "12px",
+    textAlign: "right",
+  },
+  stockContainer: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "8px",
+    padding: "12px 16px",
+    marginBottom: "16px",
+  },
+  stockLabel: {
+    fontSize: "14px",
+    fontWeight: "600",
+    color: "#374151",
+  },
+  stockInput: {
+    width: "100px",
+    padding: "8px",
+    borderRadius: "6px",
+    border: "1px solid #d1d5db",
+    fontSize: "15px",
+    textAlign: "right",
+  }
 };
 
 function formatFileSize(bytes) {
@@ -284,23 +287,20 @@ function formatFileSize(bytes) {
 }
 
 export default function App() {
-  const [tab, setTab] = useState("file"); // "file" | "camera"
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [status, setStatus] = useState(null);
+  const [tab, setTab] = useState("file");
+  const [filesState, setFilesState] = useState([]);
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [uploadedUrl, setUploadedUrl] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [btnHover, setBtnHover] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
+  const [globalStatus, setGlobalStatus] = useState(null);
+  const [btnHover, setBtnHover] = useState(false);
+  const [stockQuantity, setStockQuantity] = useState(0);
+
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // カメラ停止
   const stopCamera = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -309,244 +309,197 @@ export default function App() {
     setCameraActive(false);
   };
 
-  // タブ切替時にカメラ停止・状態リセット
   const handleTabChange = (newTab) => {
     stopCamera();
     setTab(newTab);
-    handleClear();
+    setGlobalStatus(null);
   };
 
-  // アンマウント時にカメラ停止
   useEffect(() => {
     return () => stopCamera();
   }, []);
 
   const startCamera = async () => {
+    if (filesState.length >= 3) {
+      setGlobalStatus({ type: "error", message: "すでに最大3枚選択されています。" });
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
         audio: false,
       });
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
+      if (videoRef.current) videoRef.current.srcObject = stream;
       setCameraActive(true);
-      setStatus(null);
+      setGlobalStatus(null);
     } catch {
-      setStatus({ type: "error", message: "カメラへのアクセスが拒否されました。" });
+      setGlobalStatus({ type: "error", message: "カメラへのアクセスが拒否されました。" });
     }
+  };
+
+  const handleFilesSelect = (newFilesList) => {
+    const validFiles = Array.from(newFilesList).filter(f => f.type.startsWith("image/"));
+    if (validFiles.length === 0) return;
+
+    setFilesState(prev => {
+      const remainingSlots = 3 - prev.length;
+      if (remainingSlots <= 0) {
+        setGlobalStatus({ type: "error", message: "最大3枚までです。" });
+        return prev;
+      }
+      const filesToAdd = validFiles.slice(0, remainingSlots);
+      if (validFiles.length > remainingSlots) {
+        setGlobalStatus({ type: "info", message: "最大3枚までです。残りは無視されました。" });
+      } else {
+        setGlobalStatus(null);
+      }
+      const newItems = filesToAdd.map(f => ({
+        id: Math.random().toString(36).substring(7),
+        file: f,
+        previewUrl: URL.createObjectURL(f),
+        status: null,
+        progress: 0,
+        uploadedUrl: null
+      }));
+      return [...prev, ...newItems];
+    });
   };
 
   const handleCapture = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
-
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
 
     canvas.toBlob((blob) => {
-      const fileName = `camera_${Date.now()}.jpg`;
-      const file = new File([blob], fileName, { type: "image/jpeg" });
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(blob));
-      setUploadedUrl(null);
-      setProgress(0);
-      setStatus(null);
-      stopCamera();
+      const file = new File([blob], `camera_${Date.now()}.jpg`, { type: "image/jpeg" });
+      handleFilesSelect([file]);
+      if (filesState.length + 1 >= 3) {
+        stopCamera();
+        setTab("file");
+      }
     }, "image/jpeg");
   };
 
-  const handleFileSelect = (file) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setStatus({ type: "error", message: "Please select a valid image file." });
-      return;
-    }
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    setStatus(null);
-    setUploadedUrl(null);
-    setProgress(0);
-  };
-
   const handleInputChange = (e) => {
-    handleFileSelect(e.target.files[0]);
+    handleFilesSelect(e.target.files);
+    e.target.value = "";
   };
 
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragging(false);
-    handleFileSelect(e.dataTransfer.files[0]);
+    if (filesState.length < 3) handleFilesSelect(e.dataTransfer.files);
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    setIsDragging(true);
+  const handleRemoveFile = (id) => {
+    setFilesState(prev => prev.filter(item => {
+      if (item.id === id) {
+        URL.revokeObjectURL(item.previewUrl);
+        return false;
+      }
+      return true;
+    }));
+    setGlobalStatus(null);
   };
 
-  const handleDragLeave = () => {
-    setIsDragging(false);
-  };
-
-  const handleClear = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    setStatus(null);
-    setUploadedUrl(null);
-    setProgress(0);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const updateFileState = (id, updates) => {
+    setFilesState(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
-      setStatus({ type: "error", message: "Please select an image first." });
-      return;
-    }
+    const filesToUpload = filesState.filter(f => !f.uploadedUrl);
+    if (filesToUpload.length === 0) return;
 
     const apiUrl = import.meta.env.VITE_API_URL;
     if (!apiUrl) {
-      setStatus({
-        type: "error",
-        message: "VITE_API_URL is not set. Create a .env file based on .env.example.",
-      });
+      setGlobalStatus({ type: "error", message: "VITE_API_URL is not set." });
       return;
     }
 
-    try {
-      setUploading(true);
-      setProgress(10);
-      setStatus({ type: "info", message: "Getting upload URL..." });
+    setUploading(true);
+    setGlobalStatus({ type: "info", message: "アップロード中..." });
 
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName: selectedFile.name,
-          fileType: selectedFile.type,
-        }),
-      });
+    await Promise.all(
+      filesToUpload.map(async (fileObj) => {
+        updateFileState(fileObj.id, { status: { type: "info", message: "URL取得中..." }, progress: 10 });
+        try {
+          const res = await fetch(apiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fileName: fileObj.file.name, fileType: fileObj.file.type }),
+          });
+          let data = await res.json();
+          if (typeof data.body === "string") data = JSON.parse(data.body);
+          if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
 
-      let data = await response.json();
-      console.log("Lambda response:", data);
+          updateFileState(fileObj.id, { status: { type: "info", message: "S3へ送信中..." }, progress: 50 });
+          const s3Res = await fetch(data.presignedUrl, { method: "PUT", body: fileObj.file });
+          if (!s3Res.ok) throw new Error(`S3 Error ${s3Res.status}`);
 
-      if (typeof data.body === "string") {
-        data = JSON.parse(data.body);
-      }
+          updateFileState(fileObj.id, { status: { type: "success", message: "完了!" }, progress: 100, uploadedUrl: data.url });
+        } catch (err) {
+          updateFileState(fileObj.id, { status: { type: "error", message: `失敗: ${err.message}` }, progress: 0 });
+        }
+      })
+    );
 
-      if (!response.ok || data.error) {
-        throw new Error(data.error || `Server returned ${response.status}`);
-      }
-
-      setProgress(50);
-      setStatus({ type: "info", message: "Uploading to S3..." });
-
-      const s3Response = await fetch(data.presignedUrl, {
-        method: "PUT",
-        body: selectedFile,
-      });
-
-      if (!s3Response.ok) {
-        throw new Error(`S3 upload failed with status ${s3Response.status}`);
-      }
-
-      setProgress(100);
-      setUploadedUrl(data.url);
-      setStatus({ type: "success", message: "Image uploaded successfully!" });
-    } catch (err) {
-      setStatus({ type: "error", message: `Upload failed: ${err.message}` });
-      setProgress(0);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleCopyUrl = () => {
-    if (!uploadedUrl) return;
-    navigator.clipboard.writeText(uploadedUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+    setUploading(false);
+    setFilesState(current => {
+      const fails = current.some(f => f.status?.type === "error");
+      setGlobalStatus({ type: fails ? "error" : "success", message: fails ? "一部エラーあり" : "完了しました！" });
+      return current;
     });
+    setStockQuantity(0);
   };
 
-  const isButtonDisabled = !selectedFile || uploading;
+  const isBtnDisabled = filesState.filter(f => !f.uploadedUrl).length === 0 || uploading;
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
         <h1 style={styles.title}>Image Uploader</h1>
-        <p style={styles.subtitle}>Upload images directly to AWS S3</p>
+        <p style={styles.subtitle}>Upload up to 3 images directly to AWS S3</p>
 
-        {/* Tabs */}
         <div style={styles.tabContainer}>
-          <button style={styles.tab(tab === "file")} onClick={() => handleTabChange("file")}>
-            ファイル選択
-          </button>
-          <button style={styles.tab(tab === "camera")} onClick={() => handleTabChange("camera")}>
-            カメラで撮影
-          </button>
+          <button style={styles.tab(tab === "file")} onClick={() => handleTabChange("file")}>ファイル選択</button>
+          <button style={styles.tab(tab === "camera")} onClick={() => handleTabChange("camera")}>カメラで撮影</button>
         </div>
 
-        {/* ---- ファイル選択タブ ---- */}
-        {tab === "file" && (
+        {globalStatus && <div style={styles.statusBox(globalStatus.type)}>{globalStatus.message}</div>}
+
+        <div style={styles.fileCount}>選択 : {filesState.length} / 3 枚</div>
+
+        {tab === "file" && filesState.length < 3 && (
           <>
-            {!selectedFile && (
-              <div
-                style={{ ...styles.dropZone, ...(isDragging ? styles.dropZoneHover : {}) }}
-                onClick={() => fileInputRef.current?.click()}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-              >
-                <div style={styles.dropZoneIcon}>{isDragging ? "📂" : "🖼️"}</div>
-                <div style={{ fontSize: "15px", color: "#374151", fontWeight: "500" }}>
-                  Drag & drop your image here
-                </div>
-                <div style={styles.dropZoneText}>
-                  or <span style={styles.browseLink}>browse files</span>
-                </div>
-                <div style={{ ...styles.dropZoneText, marginTop: "6px", fontSize: "12px" }}>
-                  Supports: JPG, PNG, GIF, WEBP, SVG
-                </div>
-              </div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              style={styles.fileInput}
-              onChange={handleInputChange}
-            />
+            <div
+              style={{ ...styles.dropZone, ...(isDragging ? styles.dropZoneHover : {}) }}
+              onClick={() => fileInputRef.current?.click()}
+              onDrop={handleDrop}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+            >
+              <div style={styles.dropZoneIcon}>{isDragging ? "📂" : "🖼️"}</div>
+              <div style={{ fontSize: "15px", color: "#374151" }}>Drag & drop images here</div>
+              <div style={styles.dropZoneText}>残り {3 - filesState.length} 枚追加可能</div>
+            </div>
+            <input ref={fileInputRef} type="file" accept="image/*" multiple style={styles.fileInput} onChange={handleInputChange} />
           </>
         )}
 
-        {/* ---- カメラタブ ---- */}
-        {tab === "camera" && !selectedFile && (
+        {tab === "camera" && filesState.length < 3 && (
           <>
             {!cameraActive ? (
-              <button style={styles.startCameraButton} onClick={startCamera}>
-                📷　カメラを起動する
-              </button>
+              <button style={styles.startCameraButton} onClick={startCamera}>📷 カメラ起動</button>
             ) : (
               <>
-                <div style={styles.cameraContainer}>
-                  <video
-                    ref={videoRef}
-                    style={styles.cameraVideo}
-                    autoPlay
-                    playsInline
-                    muted
-                  />
-                </div>
+                <div style={styles.cameraContainer}><video ref={videoRef} style={styles.cameraVideo} autoPlay playsInline muted /></div>
                 <div style={styles.cameraControls}>
-                  <button style={styles.captureButton} onClick={handleCapture}>
-                    撮影する
-                  </button>
-                  <button style={styles.stopButton} onClick={stopCamera}>
-                    停止
-                  </button>
+                  <button style={styles.captureButton} onClick={handleCapture}>撮影 (残り{3 - filesState.length}枚)</button>
+                  <button style={styles.stopButton} onClick={stopCamera}>停止</button>
                 </div>
               </>
             )}
@@ -554,66 +507,64 @@ export default function App() {
           </>
         )}
 
-        {/* 共通: プレビュー */}
-        {selectedFile && previewUrl && (
-          <div style={styles.previewContainer}>
-            <img src={previewUrl} alt="Preview" style={styles.previewImage} />
-            <div style={styles.previewInfo}>
-              <span>
-                <strong>{selectedFile.name}</strong> — {formatFileSize(selectedFile.size)}
-              </span>
-              <button style={styles.clearBtn} onClick={handleClear}>
-                Remove
-              </button>
-            </div>
+        {filesState.length > 0 && (
+          <div style={styles.previewGrid}>
+            {filesState.map((item) => (
+              <div key={item.id} style={styles.previewCard}>
+                {!uploading && !item.uploadedUrl && (
+                  <button style={styles.clearBtn} onClick={() => handleRemoveFile(item.id)}>&times;</button>
+                )}
+                <img src={item.previewUrl} alt="Preview" style={styles.previewImage} />
+                <div style={styles.previewInfo}>
+                  <div style={styles.fileName}>{item.file.name}</div>
+                  <div style={{ color: "#6b7280" }}>{formatFileSize(item.file.size)}</div>
+                  {(uploading || item.progress > 0) && !item.uploadedUrl && (
+                    <div style={styles.progressContainer}>
+                      <div style={styles.progressBar}><div style={{ ...styles.progressFill, width: `${item.progress}%` }} /></div>
+                      {item.status && <div style={styles.progressText}>{item.status.message}</div>}
+                    </div>
+                  )}
+                  {item.uploadedUrl && (
+                    <div style={styles.resultUrlContainer}>
+                      <span style={styles.resultUrl} title={item.uploadedUrl}>URL発行済</span>
+                      <button onClick={() => navigator.clipboard.writeText(item.uploadedUrl)} style={styles.copyBtn}>Copy</button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* 共通: プログレスバー */}
-        {uploading && progress > 0 && (
-          <div style={styles.progressContainer}>
-            <div style={styles.progressBar}>
-              <div style={{ ...styles.progressFill, width: `${progress}%` }} />
-            </div>
-            <div style={styles.progressText}>{progress}%</div>
+        {filesState.filter(f => !f.uploadedUrl).length > 0 && (
+          <div style={styles.stockContainer}>
+            <label style={styles.stockLabel} htmlFor="stockInput">在庫数を入力（一括）</label>
+            <input
+              id="stockInput"
+              type="number"
+              min="0"
+              style={styles.stockInput}
+              value={stockQuantity}
+              onChange={(e) => setStockQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+              disabled={uploading}
+              placeholder="0"
+            />
           </div>
         )}
 
-        {/* 共通: ステータス */}
-        {status && (
-          <div style={styles.statusBox(status.type)}>{status.message}</div>
-        )}
-
-        {/* 共通: アップロードボタン */}
         <button
           style={{
             ...styles.uploadButton,
-            ...(isButtonDisabled ? styles.uploadButtonDisabled : {}),
-            ...(btnHover && !isButtonDisabled ? styles.uploadButtonHover : {}),
+            ...(isBtnDisabled ? styles.uploadButtonDisabled : {}),
+            ...(btnHover && !isBtnDisabled ? styles.uploadButtonHover : {}),
           }}
           onClick={handleUpload}
-          disabled={isButtonDisabled}
+          disabled={isBtnDisabled}
           onMouseEnter={() => setBtnHover(true)}
           onMouseLeave={() => setBtnHover(false)}
         >
-          {uploading ? "Uploading..." : "Upload Image"}
+          {uploading ? "Uploading..." : `Upload ${filesState.filter(f => !f.uploadedUrl).length} Image(s)`}
         </button>
-
-        {/* 共通: 結果 */}
-        {uploadedUrl && (
-          <div style={styles.resultBox}>
-            <div style={styles.resultLabel}>Uploaded Image URL</div>
-            <div style={styles.resultUrlContainer}>
-              <span style={styles.resultUrl}>{uploadedUrl}</span>
-              <button style={styles.copyBtn} onClick={handleCopyUrl}>
-                {copied ? "Copied!" : "Copy"}
-              </button>
-            </div>
-            <div style={styles.resultImageContainer}>
-              <img src={uploadedUrl} alt="Uploaded" style={styles.resultImage} />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
