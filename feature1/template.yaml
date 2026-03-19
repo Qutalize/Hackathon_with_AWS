@@ -97,8 +97,8 @@ Resources:
       DeliveryStreamType: DirectPut
       S3DestinationConfiguration:
         BucketARN: !GetAtt DataLakeBucket.Arn
-        Prefix: 'feature1/raw/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/'
-        ErrorOutputPrefix: 'feature1/errors/'
+        Prefix: 'raw/function1/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/'
+        ErrorOutputPrefix: 'raw/function1/errors/'
         BufferingHints:
           IntervalInSeconds: 60
           SizeInMBs: 1
