@@ -1,16 +1,13 @@
 """
-Lambda② ハンドラー: バズ度計算 + AWS SNS通知
+Lambda② ハンドラー: バズ度計算 + AWS SNS通知 + S3保存
 DynamoDB Streams から自動トリガーされる。
-
-新アーキテクチャ:
-  Lambda①がDynamoDBに保存 → Streams発火 → Lambda②(バズ度計算+通知)
-  ※ S3へのデータ投下は DynamoDB Streams → Firehose で自動化
 
 処理フロー:
 1. DynamoDB Streams のイベントから新規INSERTされた投稿データを取得
 2. バズ度（バイラルスコア）を計算
 3. 推奨発注量を算出
 4. AWS SNS で担当者に在庫増加推奨を通知
+5. 「商品名・ジャンル・在庫増加予測」をS3データレイクに直接保存
 """
 import json
 import logging
@@ -25,6 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import Config
 from utils.dynamo_client import DynamoClient
 from utils.notification import NotificationClient
+from utils.s3_client import S3Client
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -224,6 +222,25 @@ def handler(event, context):
             logger.info(f"📢 {len(top_products)} 件の在庫増加推奨を通知しました")
         else:
             logger.info("📢 推奨商品なし（バズ度しきい値未満）")
+
+        # ===== 4. S3 に直接保存（商品名・ジャンル・在庫増加予測の3列）=====
+        s3 = S3Client(
+            bucket_name=Config.S3_BUCKET_NAME,
+            prefix=Config.S3_PREFIX,
+            region=Config.AWS_REGION,
+            demo_mode=Config.DEMO_MODE,
+        )
+        s3_records = [
+            {
+                "商品名": r.get("product_name", ""),
+                "ジャンル": r.get("genre", ""),
+                "在庫増加予測": r.get("recommended_quantity", 0),
+            }
+            for r in results
+        ]
+        if s3_records:
+            s3_path = s3.upload_learning_data(s3_records)
+            logger.info(f"📦 S3保存完了: {s3_path}")
 
         result = {
             "message": "Lambda② 完了",
