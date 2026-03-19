@@ -143,8 +143,16 @@ def pass_to_bedrock(event, context):
             analysis_result = json_text
 
         # --- D. DynamoDBに保存 ---
-        # 数値型の主キーが要求されているため、ミリ秒精度のUNIXタイムスタンプをSSIDとして利用する
-        item_id = int(time.time() * 1000)
+        # フロントエンドから送信されたSSIDがあれば優先し、なければ自動生成する
+        frontend_ssid = body.get("ssid")
+        if frontend_ssid:
+            try:
+                item_id = int(frontend_ssid)
+            except ValueError:
+                item_id = int(time.time() * 1000)
+        else:
+            item_id = int(time.time() * 1000)
+            
         timestamp = datetime.now().isoformat()
         
         table = dynamodb.Table(DYNAMODB_TABLE_NAME)

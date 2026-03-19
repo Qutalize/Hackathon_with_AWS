@@ -436,54 +436,8 @@ export default function App() {
     setFilesState(prev => prev.map(item => item.id === id ? { ...item, ...updates } : item));
   };
 
-  const handleUpload = async () => {
-    const filesToUpload = filesState.filter(f => !f.uploadedUrl);
-    if (filesToUpload.length === 0) return;
-
-    const apiUrl = import.meta.env.VITE_API_URL;
-    if (!apiUrl) {
-      setGlobalStatus({ type: "error", message: "VITE_API_URL is not set." });
-      return;
-    }
-
-    setUploading(true);
-    setGlobalStatus({ type: "info", message: "アップロード中..." });
-
-    await Promise.all(
-      filesToUpload.map(async (fileObj) => {
-        updateFileState(fileObj.id, { status: { type: "info", message: "URL取得中..." }, progress: 10 });
-        try {
-          const res = await fetch(apiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ fileName: fileObj.file.name, fileType: fileObj.file.type }),
-          });
-          let data = await res.json();
-          if (typeof data.body === "string") data = JSON.parse(data.body);
-          if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
-
-          updateFileState(fileObj.id, { status: { type: "info", message: "S3へ送信中..." }, progress: 50 });
-          const s3Res = await fetch(data.presignedUrl, { method: "PUT", body: fileObj.file });
-          if (!s3Res.ok) throw new Error(`S3 Error ${s3Res.status}`);
-
-          updateFileState(fileObj.id, { status: { type: "success", message: "完了!" }, progress: 100, uploadedUrl: data.url });
-        } catch (err) {
-          updateFileState(fileObj.id, { status: { type: "error", message: `失敗: ${err.message}` }, progress: 0 });
-        }
-      })
-    );
-
-    setUploading(false);
-    setFilesState(current => {
-      const fails = current.some(f => f.status?.type === "error");
-      setGlobalStatus({ type: fails ? "error" : "success", message: fails ? "一部エラーあり" : "完了しました！" });
-      return current;
-    });
-    setStockQuantity(0);
-  };
-
-  // --- 新機能: Bedrockへの一括分析＆データ登録処理 ---
-  const handleBedrockUpload = async () => {
+  // --- Bedrockへの分析とS3保存を同時非同期で行う処理 ---
+  const handleProcessAll = async () => {
     const filesToProcess = filesState.filter(f => !f.analysis_result);
     if (filesToProcess.length === 0) return;
 
@@ -494,57 +448,93 @@ export default function App() {
     }
 
     setUploading(true);
-    setGlobalStatus({ type: "info", message: "AIで分析中..." });
+    setGlobalStatus({ type: "info", message: "AI分析とS3保存を並行して実行中..." });
+    filesToProcess.forEach(f => updateFileState(f.id, { status: { type: "info", message: "処理を開始しました..." }, progress: 10 }));
 
-    // 全てのファイルについてステータスを更新
-    filesToProcess.forEach(f => updateFileState(f.id, { status: { type: "info", message: "画像圧縮中..." }, progress: 10 }));
+    // フロントエンドで共通のSSID（ミリ秒タイムスタンプ）を生成し、共有する
+    const ssid = Date.now();
 
-    try {
-      // 1. 全ての画像を圧縮してBase64にする
+    // 1. Bedrock分析用プロミス (非同期)
+    const bedrockPromise = (async () => {
       const base64Images = await Promise.all(
         filesToProcess.map(async (fileObj) => {
           const base64Image = await compressImageBase64(fileObj.file);
-          console.log(`[DEBUG] ${fileObj.file.name}: 圧縮後(Base64)サイズ相当 ${formatFileSize(base64Image.length)}`);
-          updateFileState(fileObj.id, { 
-            compressedUrl: base64Image,
-            status: { type: "info", message: "Bedrockへ一括送信中..." }, 
-            progress: 50 
-          });
           return base64Image;
         })
       );
       
-      // 2. まとめてLambdaへ送信
+      // 画像圧縮が終わったら、時間のかかるBedrock待機のステータスへ更新
+      filesToProcess.forEach(f => updateFileState(f.id, { 
+        status: { type: "info", message: "Bedrockで分析中..." }, 
+        progress: 80 
+      }));
+
       const res = await fetch(bedrockApiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images: base64Images, stock: stockQuantity }),
+        // ssidを追加でバックエンドに渡す
+        body: JSON.stringify({ images: base64Images, stock: stockQuantity, ssid: ssid }),
       });
       
       let data = await res.json();
       if (typeof data.body === "string") data = JSON.parse(data.body);
-      if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
+      if (!res.ok || data.error) throw new Error(data.error || `Bedrock Error ${res.status}`);
+      
+      return data.analysis_result;
+    })();
 
-      // 3. 成功したら全てに同じ分析結果を入れる
+    // 2. S3アップロード用プロミス (非同期)
+    const s3Promise = (async () => {
+      const s3ApiUrl = import.meta.env.VITE_API_URL;
+      if (!s3ApiUrl) return null;
+
+      await Promise.all(
+        filesToProcess.map(async (fileObj, index) => {
+          try {
+            const ext = fileObj.file.name.split('.').pop() || "jpg";
+            const newFileName = `${ssid}_${index + 1}.${ext}`;
+            
+            const presignRes = await fetch(s3ApiUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ fileName: newFileName, fileType: fileObj.file.type }),
+            });
+            let presignData = await presignRes.json();
+            if (typeof presignData.body === "string") presignData = JSON.parse(presignData.body);
+            if (!presignRes.ok || presignData.error) throw new Error(presignData.error || `S3 API Error ${presignRes.status}`);
+
+            const s3Res = await fetch(presignData.presignedUrl, { method: "PUT", body: fileObj.file });
+            if (!s3Res.ok) throw new Error(`S3 Put Error ${s3Res.status}`);
+
+            updateFileState(fileObj.id, { uploadedUrl: presignData.url });
+          } catch (err) {
+            console.error(`S3 upload failed for ${fileObj.file.name}`, err);
+          }
+        })
+      );
+    })();
+
+    // 3. 両方の並行処理の完了を待つ
+    try {
+      // どちらか一方が早く終わっても、両方が終わるまで待機
+      const [analysisResult] = await Promise.all([bedrockPromise, s3Promise]);
+      
       filesToProcess.forEach(f => {
         updateFileState(f.id, { 
-          status: { type: "success", message: "一括分析完了!" }, 
+          status: { type: "success", message: "分析＆保存 完了!" }, 
           progress: 100, 
-          analysis_result: data.analysis_result 
+          analysis_result: analysisResult 
         });
       });
+      setGlobalStatus({ type: "success", message: "すべての処理が完了しました！" });
     } catch (err) {
       filesToProcess.forEach(f => {
-        updateFileState(f.id, { status: { type: "error", message: `失敗: ${err.message}` }, progress: 0 });
+        updateFileState(f.id, { status: { type: "error", message: `分析失敗: ${err.message}` }, progress: 0 });
       });
+      setGlobalStatus({ type: "error", message: "分析処理でエラーが発生しました。" });
     }
 
     setUploading(false);
-    setFilesState(current => {
-      const fails = current.some(f => f.status?.type === "error");
-      setGlobalStatus({ type: fails ? "error" : "success", message: fails ? "一部エラーあり" : "完了しました！" });
-      return current;
-    });
     setStockQuantity(0);
   };
 
@@ -617,26 +607,12 @@ export default function App() {
                 <div style={styles.previewInfo}>
                   <div style={styles.fileName}>{item.file.name}</div>
                   <div style={{ color: "#6b7280" }}>{formatFileSize(item.file.size)}</div>
-                  {(uploading || item.progress > 0) && (!item.uploadedUrl && !item.analysis_result) && (
+                  {(uploading || item.progress > 0) && !item.analysis_result && (
                     <div style={styles.progressContainer}>
-                      <div style={styles.progressBar}><div style={{ ...styles.progressFill, width: `${item.progress}%` }} /></div>
+                      <div style={styles.progressBar}>
+                        <div style={{ ...styles.progressFill, width: `${item.progress}%` }} />
+                      </div>
                       {item.status && <div style={styles.progressText}>{item.status.message}</div>}
-                    </div>
-                  )}
-                  {item.uploadedUrl && (
-                    <div style={styles.resultUrlContainer}>
-                      <span style={styles.resultUrl} title={item.uploadedUrl}>URL発行済</span>
-                      <button onClick={() => navigator.clipboard.writeText(item.uploadedUrl)} style={styles.copyBtn}>Copy</button>
-                    </div>
-                  )}
-                  {item.analysis_result && (
-                    <div style={{ marginTop: "8px" }}>
-                      <div style={{ fontSize: "11px", fontWeight: "600", color: "#065f46", marginBottom: "4px" }}>✓ 抽出された商品名・情報:</div>
-                      <textarea
-                        value={item.analysis_result}
-                        onChange={(e) => updateFileState(item.id, { analysis_result: e.target.value })}
-                        style={{ width: "100%", fontSize: "11px", padding: "6px", borderRadius: "4px", border: "1px solid #10b981", backgroundColor: "#ecfdf5", color: "#064e3b", resize: "vertical", minHeight: "50px", boxSizing: "border-box" }}
-                      />
                     </div>
                   )}
                 </div>
@@ -644,6 +620,29 @@ export default function App() {
             ))}
           </div>
         )}
+
+        {/* 一つの大きい枠に抽出結果をまとめて出力 */}
+        {(() => {
+          const uniqueResults = [...new Set(filesState.map(f => f.analysis_result).filter(Boolean))];
+          if (uniqueResults.length === 0) return null;
+          
+          return (
+            <div style={{ marginBottom: "20px", padding: "20px", borderRadius: "8px", border: "2px solid #10b981", backgroundColor: "#f0fdf4" }}>
+              <div style={{ fontSize: "15px", fontWeight: "700", color: "#065f46", marginBottom: "12px" }}>✓ 抽出された商品情報（必要に応じて修正可能）</div>
+              {uniqueResults.map((res, idx) => (
+                <textarea
+                  key={idx}
+                  value={res}
+                  onChange={(e) => {
+                    const newVal = e.target.value;
+                    setFilesState(prev => prev.map(f => f.analysis_result === res ? { ...f, analysis_result: newVal } : f));
+                  }}
+                  style={{ width: "100%", fontSize: "14px", padding: "12px", borderRadius: "6px", border: "1px solid #34d399", backgroundColor: "#ffffff", color: "#064e3b", resize: "vertical", minHeight: "150px", boxSizing: "border-box", marginBottom: idx < uniqueResults.length - 1 ? "12px" : "0", lineHeight: "1.5" }}
+                />
+              ))}
+            </div>
+          );
+        })()}
 
         {filesState.filter(f => !f.uploadedUrl && !f.analysis_result).length > 0 && (
           <div style={styles.stockContainer}>
@@ -662,7 +661,7 @@ export default function App() {
         )}
 
         <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
-          {/* Bedrock フロー用ボタン */}
+          {/* 実行ボタン（S3保存とBedrock分析を並行して同時に実行） */}
           <button
             style={{
               ...styles.uploadButton,
@@ -670,28 +669,12 @@ export default function App() {
               marginBottom: "8px",
               ...(btnHover2 && !isBtnDisabled ? { backgroundColor: "#059669" } : {}),
             }}
-            onClick={handleBedrockUpload}
+            onClick={handleProcessAll}
             disabled={isBtnDisabled}
             onMouseEnter={() => setBtnHover2(true)}
             onMouseLeave={() => setBtnHover2(false)}
           >
-            {uploading ? "処理中..." : `AI分析＆在庫連携 (残り${filesState.filter(f => !f.analysis_result).length}枚)`}
-          </button>
-
-          {/* 従来のS3 フロー用ボタン */}
-          <button
-            style={{
-              ...styles.uploadButton,
-              ...(isBtnDisabled ? styles.uploadButtonDisabled : {}),
-              ...(btnHover && !isBtnDisabled ? styles.uploadButtonHover : {}),
-              marginBottom: 0,
-            }}
-            onClick={handleUpload}
-            disabled={isBtnDisabled}
-            onMouseEnter={() => setBtnHover(true)}
-            onMouseLeave={() => setBtnHover(false)}
-          >
-            {uploading ? "Uploading..." : `S3へ保存のみ (${filesState.filter(f => !f.uploadedUrl).length}枚)`}
+            {uploading ? "分析中..." : `画像保存 ＆ AI分析を実行 (残り${filesState.filter(f => !f.analysis_result).length}件)`}
           </button>
         </div>
       </div>
