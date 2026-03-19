@@ -101,25 +101,20 @@ def main():
     print("📦 S3 デモ保存（本番では DynamoDB Streams → Firehose → S3 で自動）")
     print("─" * 70)
 
+    # S3パス: raw/function1/year=xxx/month=xx/day=xx/ （チーム統一仕様）
     s3 = S3Client(
         bucket_name=Config.S3_BUCKET_NAME,
-        prefix=Config.S3_PREFIX,
+        prefix="raw/function1/",
         demo_mode=True,
     )
 
+    # S3に保存するのは「商品名・ジャンル・在庫増加予測」の3列のみ（チーム設計）
     learning_records = []
     for post in posts:
         learning_records.append({
-            "product_name": post.get("product_name", "不明"),
-            "genre": post.get("genre", "その他"),
-            "store": post.get("store", "不明"),
-            "buzz_score": post.get("buzz_score", 0),
-            "recommended_quantity": post.get("recommended_quantity", 0),
-            "likes": post.get("likes", 0),
-            "comments": post.get("comments", 0),
-            "sentiment": post.get("sentiment", "NEUTRAL"),
-            "platform": post.get("platform", ""),
-            "source": "feature1_sns_pipeline",
+            "商品名": post.get("product_name", "不明"),
+            "ジャンル": post.get("genre", "その他"),
+            "在庫増加予測": post.get("recommended_quantity", 0),
         })
 
     if learning_records:

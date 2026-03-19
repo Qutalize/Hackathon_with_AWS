@@ -37,11 +37,17 @@ def handler(event, context):
             continue
 
         flat_record = _dynamodb_to_flat(new_image)
-        flat_record["_event_type"] = event_name
-        flat_record["_event_id"] = record.get("eventID", "")
+
+        # S3に保存するカラムを「商品名・ジャンル・在庫増加予測」の3列のみに絞る
+        # （チーム設計: カラム1整形後 = 商品名, ジャンル, 在庫増加予測）
+        filtered_record = {
+            "商品名": flat_record.get("product_name", ""),
+            "ジャンル": flat_record.get("genre", ""),
+            "在庫増加予測": flat_record.get("recommended_quantity", 0),
+        }
 
         # JSON Lines 形式（末尾に改行）
-        json_line = json.dumps(flat_record, ensure_ascii=False) + "\n"
+        json_line = json.dumps(filtered_record, ensure_ascii=False) + "\n"
         records_to_send.append(json_line)
 
     if not records_to_send:
