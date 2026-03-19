@@ -286,6 +286,31 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// 画質を落としてBase64文字列に変換するヘルパー関数
+const compressImageBase64 = (file, maxWidth = 800) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const ratio = maxWidth / img.width;
+        canvas.width = maxWidth;
+        canvas.height = img.height * (ratio < 1 ? ratio : 1);
+        if (ratio >= 1) canvas.width = img.width;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL("image/jpeg", 0.7)); // 軽量化のためJPEGで圧縮率0.7
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function App() {
   const [tab, setTab] = useState("file");
   const [filesState, setFilesState] = useState([]);
@@ -294,6 +319,7 @@ export default function App() {
   const [cameraActive, setCameraActive] = useState(false);
   const [globalStatus, setGlobalStatus] = useState(null);
   const [btnHover, setBtnHover] = useState(false);
+  const [btnHover2, setBtnHover2] = useState(false);
   const [stockQuantity, setStockQuantity] = useState(0);
 
   const fileInputRef = useRef(null);
@@ -456,7 +482,66 @@ export default function App() {
     setStockQuantity(0);
   };
 
-  const isBtnDisabled = filesState.filter(f => !f.uploadedUrl).length === 0 || uploading;
+  // --- 新機能: Bedrockへの分析＆データ登録処理 ---
+  const handleBedrockUpload = async () => {
+    const filesToProcess = filesState.filter(f => !f.analysis_result);
+    if (filesToProcess.length === 0) return;
+
+    const bedrockApiUrl = import.meta.env.VITE_BEDROCK_API_URL;
+    if (!bedrockApiUrl) {
+      setGlobalStatus({ type: "error", message: ".env に VITE_BEDROCK_API_URL を設定してください。" });
+      return;
+    }
+
+    setUploading(true);
+    setGlobalStatus({ type: "info", message: "AIで分析中..." });
+
+    await Promise.all(
+      filesToProcess.map(async (fileObj) => {
+        updateFileState(fileObj.id, { status: { type: "info", message: "画像圧縮中..." }, progress: 10 });
+        
+        try {
+          const base64Image = await compressImageBase64(fileObj.file);
+          console.log(`[DEBUG] ${fileObj.file.name}: 元サイズ ${formatFileSize(fileObj.file.size)} -> 圧縮後(Base64)サイズ相当 ${formatFileSize(base64Image.length)}`);
+
+          // [開発中デバッグ機能] 圧縮後の画像をプレビューとしてUIに反映させる
+          updateFileState(fileObj.id, { 
+            compressedUrl: base64Image,
+            status: { type: "info", message: "Bedrockへ送信中..." }, 
+            progress: 50 
+          });
+          
+          const res = await fetch(bedrockApiUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image: base64Image, stock: stockQuantity }),
+          });
+          
+          let data = await res.json();
+          if (typeof data.body === "string") data = JSON.parse(data.body);
+          if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
+
+          updateFileState(fileObj.id, { 
+            status: { type: "success", message: "分析完了!" }, 
+            progress: 100, 
+            analysis_result: data.analysis_result 
+          });
+        } catch (err) {
+          updateFileState(fileObj.id, { status: { type: "error", message: `失敗: ${err.message}` }, progress: 0 });
+        }
+      })
+    );
+
+    setUploading(false);
+    setFilesState(current => {
+      const fails = current.some(f => f.status?.type === "error");
+      setGlobalStatus({ type: fails ? "error" : "success", message: fails ? "一部エラーあり" : "全件の分析と登録が完了しました！" });
+      return current;
+    });
+    setStockQuantity(0);
+  };
+
+  const isBtnDisabled = filesState.filter(f => !f.uploadedUrl && !f.analysis_result).length === 0 || uploading;
 
   return (
     <div style={styles.container}>
@@ -511,14 +596,21 @@ export default function App() {
           <div style={styles.previewGrid}>
             {filesState.map((item) => (
               <div key={item.id} style={styles.previewCard}>
-                {!uploading && !item.uploadedUrl && (
+                {!uploading && !item.uploadedUrl && !item.analysis_result && (
                   <button style={styles.clearBtn} onClick={() => handleRemoveFile(item.id)}>&times;</button>
                 )}
-                <img src={item.previewUrl} alt="Preview" style={styles.previewImage} />
+                {item.compressedUrl ? (
+                  <div style={{ position: "relative" }}>
+                    <span style={{ position: "absolute", top: 0, left: 0, backgroundColor: "#ef4444", color: "#fff", fontSize: "10px", padding: "2px 6px", fontWeight: "bold", zIndex: 5, borderBottomRightRadius: "4px" }}>圧縮後プレビュー</span>
+                    <img src={item.compressedUrl} alt="Compressed" style={styles.previewImage} />
+                  </div>
+                ) : (
+                  <img src={item.previewUrl} alt="Preview" style={styles.previewImage} />
+                )}
                 <div style={styles.previewInfo}>
                   <div style={styles.fileName}>{item.file.name}</div>
                   <div style={{ color: "#6b7280" }}>{formatFileSize(item.file.size)}</div>
-                  {(uploading || item.progress > 0) && !item.uploadedUrl && (
+                  {(uploading || item.progress > 0) && (!item.uploadedUrl && !item.analysis_result) && (
                     <div style={styles.progressContainer}>
                       <div style={styles.progressBar}><div style={{ ...styles.progressFill, width: `${item.progress}%` }} /></div>
                       {item.status && <div style={styles.progressText}>{item.status.message}</div>}
@@ -530,13 +622,23 @@ export default function App() {
                       <button onClick={() => navigator.clipboard.writeText(item.uploadedUrl)} style={styles.copyBtn}>Copy</button>
                     </div>
                   )}
+                  {item.analysis_result && (
+                    <div style={{ marginTop: "8px" }}>
+                      <div style={{ fontSize: "11px", fontWeight: "600", color: "#065f46", marginBottom: "4px" }}>✓ 抽出された商品名・情報:</div>
+                      <textarea
+                        value={item.analysis_result}
+                        onChange={(e) => updateFileState(item.id, { analysis_result: e.target.value })}
+                        style={{ width: "100%", fontSize: "11px", padding: "6px", borderRadius: "4px", border: "1px solid #10b981", backgroundColor: "#ecfdf5", color: "#064e3b", resize: "vertical", minHeight: "50px", boxSizing: "border-box" }}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {filesState.filter(f => !f.uploadedUrl).length > 0 && (
+        {filesState.filter(f => !f.uploadedUrl && !f.analysis_result).length > 0 && (
           <div style={styles.stockContainer}>
             <label style={styles.stockLabel} htmlFor="stockInput">在庫数を入力（一括）</label>
             <input
@@ -552,19 +654,39 @@ export default function App() {
           </div>
         )}
 
-        <button
-          style={{
-            ...styles.uploadButton,
-            ...(isBtnDisabled ? styles.uploadButtonDisabled : {}),
-            ...(btnHover && !isBtnDisabled ? styles.uploadButtonHover : {}),
-          }}
-          onClick={handleUpload}
-          disabled={isBtnDisabled}
-          onMouseEnter={() => setBtnHover(true)}
-          onMouseLeave={() => setBtnHover(false)}
-        >
-          {uploading ? "Uploading..." : `Upload ${filesState.filter(f => !f.uploadedUrl).length} Image(s)`}
-        </button>
+        <div style={{ display: "flex", gap: "10px", flexDirection: "column" }}>
+          {/* Bedrock フロー用ボタン */}
+          <button
+            style={{
+              ...styles.uploadButton,
+              backgroundColor: isBtnDisabled ? "#a5b4fc" : "#10b981",
+              marginBottom: "8px",
+              ...(btnHover2 && !isBtnDisabled ? { backgroundColor: "#059669" } : {}),
+            }}
+            onClick={handleBedrockUpload}
+            disabled={isBtnDisabled}
+            onMouseEnter={() => setBtnHover2(true)}
+            onMouseLeave={() => setBtnHover2(false)}
+          >
+            {uploading ? "処理中..." : `AI分析＆在庫連携 (残り${filesState.filter(f => !f.analysis_result).length}枚)`}
+          </button>
+
+          {/* 従来のS3 フロー用ボタン */}
+          <button
+            style={{
+              ...styles.uploadButton,
+              ...(isBtnDisabled ? styles.uploadButtonDisabled : {}),
+              ...(btnHover && !isBtnDisabled ? styles.uploadButtonHover : {}),
+              marginBottom: 0,
+            }}
+            onClick={handleUpload}
+            disabled={isBtnDisabled}
+            onMouseEnter={() => setBtnHover(true)}
+            onMouseLeave={() => setBtnHover(false)}
+          >
+            {uploading ? "Uploading..." : `S3へ保存のみ (${filesState.filter(f => !f.uploadedUrl).length}枚)`}
+          </button>
+        </div>
       </div>
     </div>
   );
