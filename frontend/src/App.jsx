@@ -286,8 +286,8 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// 画質を落としてBase64文字列に変換するヘルパー関数
-const compressImageBase64 = (file, maxWidth = 800) => {
+// OCR精度を上げるため、解像度と画質の設定を高くしています（元のサイズが大きすぎる場合のリサイズ用）
+const compressImageBase64 = (file, maxWidth = 1600) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -303,7 +303,7 @@ const compressImageBase64 = (file, maxWidth = 800) => {
 
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL("image/jpeg", 0.7)); // 軽量化のためJPEGで圧縮率0.7
+        resolve(canvas.toDataURL("image/jpeg", 0.9)); // 文字が潰れないよう品質を0.9に設定
       };
       img.onerror = (err) => reject(err);
     };
@@ -482,7 +482,7 @@ export default function App() {
     setStockQuantity(0);
   };
 
-  // --- 新機能: Bedrockへの分析＆データ登録処理 ---
+  // --- 新機能: Bedrockへの一括分析＆データ登録処理 ---
   const handleBedrockUpload = async () => {
     const filesToProcess = filesState.filter(f => !f.analysis_result);
     if (filesToProcess.length === 0) return;
@@ -496,46 +496,53 @@ export default function App() {
     setUploading(true);
     setGlobalStatus({ type: "info", message: "AIで分析中..." });
 
-    await Promise.all(
-      filesToProcess.map(async (fileObj) => {
-        updateFileState(fileObj.id, { status: { type: "info", message: "画像圧縮中..." }, progress: 10 });
-        
-        try {
-          const base64Image = await compressImageBase64(fileObj.file);
-          console.log(`[DEBUG] ${fileObj.file.name}: 元サイズ ${formatFileSize(fileObj.file.size)} -> 圧縮後(Base64)サイズ相当 ${formatFileSize(base64Image.length)}`);
+    // 全てのファイルについてステータスを更新
+    filesToProcess.forEach(f => updateFileState(f.id, { status: { type: "info", message: "画像圧縮中..." }, progress: 10 }));
 
-          // [開発中デバッグ機能] 圧縮後の画像をプレビューとしてUIに反映させる
+    try {
+      // 1. 全ての画像を圧縮してBase64にする
+      const base64Images = await Promise.all(
+        filesToProcess.map(async (fileObj) => {
+          const base64Image = await compressImageBase64(fileObj.file);
+          console.log(`[DEBUG] ${fileObj.file.name}: 圧縮後(Base64)サイズ相当 ${formatFileSize(base64Image.length)}`);
           updateFileState(fileObj.id, { 
             compressedUrl: base64Image,
-            status: { type: "info", message: "Bedrockへ送信中..." }, 
+            status: { type: "info", message: "Bedrockへ一括送信中..." }, 
             progress: 50 
           });
-          
-          const res = await fetch(bedrockApiUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: base64Image, stock: stockQuantity }),
-          });
-          
-          let data = await res.json();
-          if (typeof data.body === "string") data = JSON.parse(data.body);
-          if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
+          return base64Image;
+        })
+      );
+      
+      // 2. まとめてLambdaへ送信
+      const res = await fetch(bedrockApiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images: base64Images, stock: stockQuantity }),
+      });
+      
+      let data = await res.json();
+      if (typeof data.body === "string") data = JSON.parse(data.body);
+      if (!res.ok || data.error) throw new Error(data.error || `Error ${res.status}`);
 
-          updateFileState(fileObj.id, { 
-            status: { type: "success", message: "分析完了!" }, 
-            progress: 100, 
-            analysis_result: data.analysis_result 
-          });
-        } catch (err) {
-          updateFileState(fileObj.id, { status: { type: "error", message: `失敗: ${err.message}` }, progress: 0 });
-        }
-      })
-    );
+      // 3. 成功したら全てに同じ分析結果を入れる
+      filesToProcess.forEach(f => {
+        updateFileState(f.id, { 
+          status: { type: "success", message: "一括分析完了!" }, 
+          progress: 100, 
+          analysis_result: data.analysis_result 
+        });
+      });
+    } catch (err) {
+      filesToProcess.forEach(f => {
+        updateFileState(f.id, { status: { type: "error", message: `失敗: ${err.message}` }, progress: 0 });
+      });
+    }
 
     setUploading(false);
     setFilesState(current => {
       const fails = current.some(f => f.status?.type === "error");
-      setGlobalStatus({ type: fails ? "error" : "success", message: fails ? "一部エラーあり" : "全件の分析と登録が完了しました！" });
+      setGlobalStatus({ type: fails ? "error" : "success", message: fails ? "一部エラーあり" : "完了しました！" });
       return current;
     });
     setStockQuantity(0);
