@@ -308,23 +308,27 @@
 
         const rawText = await res.text();
         console.log("レスポンス:", rawText);
-
-        const data = JSON.parse(rawText);
-
-        // Lambda Function URL は body が文字列の場合とオブジェクトの場合がある
-        const body = typeof data.body === "string"
-          ? JSON.parse(data.body)
-          : data;
-
-        // エラーチェック
-        if (body.error) {
+        
+        if (!res.ok) {
           document.getElementById("error-area").innerHTML = `
-            <div class="error-box">
-              ⚠️ ${body.error}<br>
-              <small>期間：${dateFrom} 〜 ${dateTo}</small>
-            </div>`;
+            <div class="error-box">⚠️ サーバーエラー（${res.status}）</div>`;
           return;
         }
+        
+        const data = JSON.parse(rawText);
+        
+        // ✅ Lambda Function URL は body が入れ子になっている場合とそうでない場合がある
+        let body;
+        if (data.body) {
+          // API Gateway 経由の場合
+          body = typeof data.body === "string"
+            ? JSON.parse(data.body)
+            : data.body;
+        } else {
+          // Lambda Function URL 直接の場合
+          body = data;
+        }
+        console.log("解析後のbody:", body);
 
         // 分析期間ラベル
         document.getElementById("period-label").textContent =
