@@ -4,7 +4,7 @@ frontend:
     build:
       commands:
         - echo "API_URL=${API_URL}"
-        - sed -i "s|new_product_api|${API_URL}|g" index.html
+        - sed -i "s|newproduct_proposal_api|${API_URL}|g" index.html
         - echo "=== 結果 ==="
         - grep "API_URL" index.html
   artifacts:
