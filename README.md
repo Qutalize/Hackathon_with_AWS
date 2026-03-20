@@ -115,12 +115,16 @@ S3（仕入れ・在庫データ）→ Glue（整形・Bedrockによるキーワ
 | **stock_delta** | Number | 在庫の増減数 |
 
 ### function2から
-| 属性名 | 型 | 説明 |
+属性名 | 型 | 説明 |
 | :--- | :--- | :--- |
-| **product_name** | String | 商品名 |
-| **genre** | String | 商品のカテゴリ（ジャンル） |
-| **stock_delta** | Number | 在庫の増減数 |
-| **expiry_date** | String | 消費期限（形式: `YYYY/MM/DD`） |
+| **SSID** | Number | セッションID（Primary Key）  |
+| **product_name** | String | 商品名（例: アメリカンドッグ）  |
+| **category** | String | 商品のカテゴリ（ジャンル）  |
+| **expiration_date**| String | 消費期限（形式: `YYYY/MM/DD`）  |
+| **stock_quantity** | Number | 現在の在庫数  |
+| **StoreID** | String | 店舗識別ID  |
+| **confidence_score**| Number | AIによる分析の信頼度（0.0〜1.0）  |
+| **created_at** | String | データ登録日時 |
 
 ```
 この二つの表のデータを統一的に扱えるようにGlueで整形する。
@@ -144,7 +148,7 @@ S3（仕入れ・在庫データ）→ Glue（整形・Bedrockによるキーワ
 ### 主要ファイル
 ```
 src/
-├── glue.py                  # Glueジョブ：整形・キーワード抽出・人気度算出
+├── inventory-traing-job.py  # Glueジョブ：整形・キーワード抽出・人気度算出
 ├── athena.sql               # 人気スコア集計テストクエリ
 └── lambda_function.py       # Athena実行, Bedrockの結果分析・画像生成
 ```
