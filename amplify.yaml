@@ -3,9 +3,7 @@ frontend:
   phases:
     build:
       commands:
-        - echo "LAMBDA_URL=${LAMBDA_URL}"
-        - sed -i "s|LAMBDA_FUNCTION_URL|${LAMBDA_URL}|g" index.html
-        - grep "API_URL" index.html
+        - sed -i "s|LAMBDA_FUNCTION_URL|${LAMBDA_FUNCTION_URL}|g" index.html
   artifacts:
     baseDirectory: /
     files:
