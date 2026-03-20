@@ -14,7 +14,7 @@
 ##アーキテクチャ
 
 <p align="center">
-  <img src="images/final.drawio.png" width="200">
+  <img src="images/final.drawio.png" width="500">
 </p>
 
 ---
@@ -99,19 +99,20 @@ EventBridge（毎朝定刻）→ notify_expiration Lambda
 
 ## 機能③ 売上データ分析・新商品提案
 
-過去の売上データをGlue・Athenaで分析し、Bedrockが新商品を提案する。
+仕入れ予測と過去の在庫データをGlueで整形し、Athenaで集計・分析し、その結果からBedrockが新商品を提案する。
 
 ### 処理フロー
 ```
-S3（売上データ）→ Glue（キーワード抽出・人気スコア算出）
-  → Athena（SQLクエリ）→ Bedrock（新商品提案・画像生成）→ フロント表示
+S3（仕入れ・在庫データ）→ Glue（整形・Bedrockによるキーワード抽出）
+  →Lambda（ Athena（SQLクエリ）→ Bedrock（新商品提案・画像生成) )→ Amplify
 ```
 
 ### 主要ファイル
 ```
 src/
-├── glue.py       # Glueジョブ：キーワード抽出・スコア算出
-└── athena.sql    # 人気スコア集計クエリ
+├── glue.py                  # Glueジョブ：整形・キーワード抽出・人気度算出
+├── athena.sql               # 人気スコア集計テストクエリ
+└── lambda_function.py       # Athena実行, Bedrockの結果分析・画像生成
 ```
 
 ---
