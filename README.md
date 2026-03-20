@@ -106,7 +106,41 @@ EventBridge（毎朝定刻）→ notify_expiration Lambda
 S3（仕入れ・在庫データ）→ Glue（整形・Bedrockによるキーワード抽出）
   →Lambda（ Athena（SQLクエリ）→ Bedrock（新商品提案・画像生成) )→ Amplify
 ```
+### S3
+### function1から
+| 属性名 | 型 | 説明 |
+| :--- | :--- | :--- |
+| **product_name** | String | 商品名 |
+| **genre** | String | 商品のカテゴリ（ジャンル） |
+| **stock_delta** | Number | 在庫の増減数 |
 
+### function2から
+| 属性名 | 型 | 説明 |
+| :--- | :--- | :--- |
+| **product_name** | String | 商品名 |
+| **genre** | String | 商品のカテゴリ（ジャンル） |
+| **stock_delta** | Number | 在庫の増減数 |
+| **expiry_date** | String | 消費期限（形式: `YYYY/MM/DD`） |
+
+```
+この二つの表のデータを統一的に扱えるようにGlueで整形する。
+加えて、新商品提案に向けて、Bedrock（Claude）で商品名とジャンルからキーワードを2つ抽出させる。
+```
+### 整形後のデータ
+| 属性名 | 型 | 説明 |
+| :--- | :--- | :--- |
+| **genre** | String | 商品のカテゴリ（ジャンル） |
+| **keyword_1** | String | 検索・分類用の関連キーワード1 |
+| **keyword_2** | String | 検索・分類用の関連キーワード2 |
+| **avg_restock** | Number | 期間内における平均補充（入荷）数 |
+| **avg_leftover** | Number | 期間内における平均売れ残り（在庫残り）数 |
+| **popularity_score** | Number | AIによる需要予測や注目度を示すスコア |
+
+```
+キーワードとスコアの関係をAthenaで集計し、その結果をBedrock（Claude）で分析してもらう。
+その分析結果のテキストからBedrock（Nova）が画像を生成する。
+その分析結果や生成画像などをGituhubとリンクしたAmplifyを使用して公開する。
+```
 ### 主要ファイル
 ```
 src/
