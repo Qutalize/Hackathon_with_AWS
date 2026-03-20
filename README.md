@@ -11,7 +11,13 @@
 | 機能③ | 売上データ分析・新商品提案 | S3, Glue, Athena, Bedrock |
 
 ---
+##アーキテクチャ
 
+<p align="center">
+  <img src="image/final_.drawio.png" width="200">
+</p>
+
+---
 ## 機能① SNSバズ検知・在庫増加提案
 
 SNS上のトレンドをリアルタイムで検知し、売れ筋商品の在庫増加をスタッフに提案する。
