@@ -3,7 +3,7 @@ frontend:
     phases:
         build:
             commands:
-                - 'sed -i "s|new_product_api|${API_URL}|g" index.html'
+                - 'sed -i "s|newproduct_proposal_api|${API_URL}|g" index.html'
     artifacts:
         baseDirectory: /
         files:
