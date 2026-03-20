@@ -15,6 +15,15 @@ export default function TopPage({ onNavigate }) {
         >
           顧客用
         </button>
+        <button style={styles.btn("#f59e0b")} onClick={() => window.location.href = "/product-dev.html"}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = "#d97706"}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = "#f59e0b"}
+        >
+          商品開発側
+        </button>
+        <button style={styles.btnDisabled}>
+          在庫管理側
+        </button>
       </div>
     </div>
   );
@@ -39,7 +48,8 @@ const styles = {
     margin: 0,
   },
   buttonGroup: {
-    display: "flex",
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
     gap: "24px",
   },
   btn: (bg) => ({
@@ -54,4 +64,15 @@ const styles = {
     transition: "background-color 0.2s",
     boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
   }),
+  btnDisabled: {
+    padding: "20px 56px",
+    fontSize: "22px",
+    fontWeight: "700",
+    color: "#ffffff",
+    backgroundColor: "#9ca3af",
+    border: "none",
+    borderRadius: "12px",
+    cursor: "not-allowed",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+  },
 };

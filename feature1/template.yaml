@@ -1,0 +1,159 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  機能① SNS人気商品データ収集・在庫増加パイプライン
+  EventBridge → Lambda①(収集+生成AI分析) → DynamoDB → Lambda②(バズ度+通知+S3保存)
+
+Parameters:
+  DemoMode:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
+    Description: デモモード（APIキーなしでサンプルデータ動作）
+
+  YouTubeApiKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+
+  TwitterBearerToken:
+    Type: String
+    Default: ''
+    NoEcho: true
+
+  InstagramAccessToken:
+    Type: String
+    Default: ''
+    NoEcho: true
+
+  InstagramBusinessAccountId:
+    Type: String
+    Default: ''
+
+  GeminiApiKey:
+    Type: String
+    Default: ''
+    NoEcho: true
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Timeout: 300
+    MemorySize: 256
+    Environment:
+      Variables:
+        DEMO_MODE: !Ref DemoMode
+        DYNAMODB_TABLE_NAME: !Ref SNSDataTable
+        S3_BUCKET_NAME: !Ref DataLakeBucket
+        S3_PREFIX: 'raw/function1/'
+        SNS_TOPIC_ARN: !Ref RestockNotificationTopic
+        YOUTUBE_API_KEY: !Ref YouTubeApiKey
+        TWITTER_BEARER_TOKEN: !Ref TwitterBearerToken
+        INSTAGRAM_ACCESS_TOKEN: !Ref InstagramAccessToken
+        INSTAGRAM_BUSINESS_ACCOUNT_ID: !Ref InstagramBusinessAccountId
+        GEMINI_API_KEY: !Ref GeminiApiKey
+
+Resources:
+  # ========================================
+  # DynamoDB テーブル
+  # ========================================
+  SNSDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: feature1_sns_data
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: post_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: post_id
+          KeyType: HASH
+      StreamSpecification:
+        StreamViewType: NEW_AND_OLD_IMAGES
+      Tags:
+        - Key: Project
+          Value: hackathon-feature1
+
+  # ========================================
+  # S3 データレイク
+  # ========================================
+  DataLakeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'hackathon-feature1-datalake-${AWS::AccountId}'
+      VersioningConfiguration:
+        Status: Enabled
+      Tags:
+        - Key: Project
+          Value: hackathon-feature1
+
+  # ========================================
+  # SNS 通知トピック
+  # ========================================
+  RestockNotificationTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: feature1-restock-notification
+      DisplayName: 在庫増加推奨通知
+      Tags:
+        - Key: Project
+          Value: hackathon-feature1
+
+  # ========================================
+  # Lambda 関数
+  # ========================================
+
+  # Lambda①: SNSデータ収集 + 生成AI分析
+  CollectSNSDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: feature1-lambda1-collect-analyze
+      Handler: lambda_handlers/collect_sns_data.handler
+      CodeUri: .
+      Description: Lambda① - SNSデータ収集 + 生成AI(Gemini/Bedrock)分析
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SNSDataTable
+      Events:
+        ScheduleEvent:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 21 * * ? *)  # 毎日 06:00 JST
+            Description: 毎日朝6時にSNSデータ収集・分析
+            Enabled: true
+
+  # Lambda②: バズ度計算 + AWS SNS通知 + S3直接保存
+  CalculateBuzzFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: feature1-lambda2-buzz-notify
+      Handler: lambda_handlers/calculate_buzz.handler
+      CodeUri: .
+      Description: Lambda② - バズ度計算 + AWS SNS通知 + S3保存
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SNSDataTable
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt RestockNotificationTopic.TopicName
+        - S3WritePolicy:
+            BucketName: !Ref DataLakeBucket
+      Events:
+        DynamoDBEvent:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt SNSDataTable.StreamArn
+            StartingPosition: TRIM_HORIZON
+            BatchSize: 100
+            MaximumBatchingWindowInSeconds: 10
+
+Outputs:
+  SNSDataTableName:
+    Value: !Ref SNSDataTable
+  DataLakeBucketName:
+    Value: !Ref DataLakeBucket
+  NotificationTopicArn:
+    Value: !Ref RestockNotificationTopic
+  Lambda1Arn:
+    Value: !GetAtt CollectSNSDataFunction.Arn
+  Lambda2Arn:
+    Value: !GetAtt CalculateBuzzFunction.Arn
