@@ -12,11 +12,11 @@ from decimal import Decimal
 # 環境変数の取得（Lambdaの「設定」画面の環境変数と合わせてください）
 # =========================================
 # BedrockのモデルID
-BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "jp.anthropic.claude-haiku-4-5-20251001-v1:0")
+BEDROCK_MODEL_ID = os.environ.get("BEDROCK_MODEL_ID", "us.anthropic.claude-3-5-sonnet-20241022-v2:0")
 DYNAMODB_TABLE_NAME = os.environ.get("DYNAMODB_TABLE_NAME", "function_2")
-DYNAMODB_REGION = os.environ.get("AWS_REGION", "ap-northeast-1")
-# Bedrock用に東京リージョン（ap-northeast-1）を明示的に指定
-BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "ap-northeast-1")
+DYNAMODB_REGION = os.environ.get("AWS_REGION", "us-east-1")
+# Bedrock用にバージニアを指定
+BEDROCK_REGION = os.environ.get("BEDROCK_REGION", "us-east-1")
 
 # =========================================
 # クライアントの初期化
@@ -43,6 +43,8 @@ def pass_to_bedrock(event, context):
         stock_quantity = body.get("stock", 0)
         if stock_quantity == "" or stock_quantity is None:
             stock_quantity = 0
+
+        store_id = body.get("store_id", "")
         
         if not images_data or len(images_data) == 0:
             return {
@@ -161,6 +163,7 @@ def pass_to_bedrock(event, context):
         item = {
             "SSID": item_id,
             "stock_quantity": Decimal(str(stock_quantity)),
+            "StoreID": store_id,
             "created_at": timestamp
         }
         
