@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from boto3.dynamodb.types import TypeDeserializer
 
 # ターゲットバケット（環境変数があれば優先、なければ直書きされたものを利用）
-TARGET_BUCKET = os.environ.get("TARGET_BUCKET", "all-261414899271-ap-northeast-1-an")
+TARGET_BUCKET = os.environ.get("TARGET_BUCKET", "all-918375630428-ap-northeast-1-an")
 s3 = boto3.client('s3')
 
 class DecimalEncoder(json.JSONEncoder):
