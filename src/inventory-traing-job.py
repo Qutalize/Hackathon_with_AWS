@@ -6,7 +6,7 @@ from awsglue.utils import getResolvedOptions
 from pyspark.context import SparkContext
 from awsglue.context import GlueContext
 from awsglue.job import Job
-from pyspark.sql.functions import udf, col, concat, lit, lpad, split
+from pyspark.sql.functions import udf, col, concat, lit, lpad, split, regexp_replace
 from pyspark.sql.types import StringType
 
 args = getResolvedOptions(sys.argv, ['JOB_NAME'])
@@ -89,11 +89,79 @@ df_f2 = glueContext.create_dynamic_frame.from_catalog(
     table_name=TABLE_F2
 ).toDF()
 
-print(f"f1件数: {df_f1.count()}, f2件数: {df_f2.count()}")
+print(f"f1 読み込み件数: {df_f1.count()}, カラム: {df_f1.columns}")
+print(f"f2 読み込み件数: {df_f2.count()}, カラム: {df_f2.columns}")
+
+# =========================================
+# 2.5 カラム正規化
+# =========================================
+
+def normalize_f1(df):
+    """
+    function1（入荷データ）の正規化
+    stock_quantity → stock_delta（正の値のまま）
+    """
+    # stock_quantity を stock_delta に変換（正の値のまま）
+    if "stock_quantity" in df.columns:
+        df = df.withColumn(
+            "stock_delta",
+            col("stock_quantity").cast("double")
+        ).drop("stock_quantity")
+
+    # product_id が不要な場合は削除
+    if "product_id" in df.columns:
+        df = df.drop("product_id")
+
+    return df
+
+def normalize_f2(df):
+    """
+    function2（消費データ）の正規化
+    ① category       → genre
+    ② expiration_date → expiry_date
+    ③ 日付形式        → 2026/03/17 を 2026-03-17 に統一
+    ④ stock_quantity  → stock_delta（負の値に変換）
+    ⑤ 不要カラムを削除
+    """
+    # ① category → genre
+    if "category" in df.columns:
+        df = df.withColumnRenamed("category", "genre")
+
+    # ② expiration_date → expiry_date
+    if "expiration_date" in df.columns:
+        df = df.withColumnRenamed("expiration_date", "expiry_date")
+
+    # ③ 日付形式を統一（/ → -）
+    if "expiry_date" in df.columns:
+        df = df.withColumn(
+            "expiry_date",
+            regexp_replace(col("expiry_date"), "/", "-")
+        )
+
+    # ④ stock_quantity → stock_delta（負の値に変換）
+    if "stock_quantity" in df.columns:
+        df = df.withColumn(
+            "stock_delta",
+            col("stock_quantity").cast("double") * -1
+        ).drop("stock_quantity")
+
+    # ⑤ 不要な新規カラムを削除
+    for c in ["StoreID", "confidence_score", "created_at", "SSID", "product_id"]:
+        if c in df.columns:
+            df = df.drop(c)
+
+    return df
+
+df_f1 = normalize_f1(df_f1)
+df_f2 = normalize_f2(df_f2)
+
+print(f"f1 正規化後カラム: {df_f1.columns}")
+print(f"f2 正規化後カラム: {df_f2.columns}")
+df_f1.show(3, truncate=False)
+df_f2.show(3, truncate=False)
 
 # =========================================
 # 3. data_date 列を追加して year/month/day を削除
-#    期間フィルタ用に日付を保持
 # =========================================
 def add_date_column(df):
     return df \
@@ -109,10 +177,14 @@ def add_date_column(df):
 df_f1_clean = add_date_column(df_f1)
 df_f2_clean = add_date_column(df_f2)
 
+# =========================================
+# 4. 結合
+# =========================================
 df_merged = df_f1_clean.unionByName(df_f2_clean, allowMissingColumns=True)
+print(f"結合後件数: {df_merged.count()}, カラム: {df_merged.columns}")
 
 # =========================================
-# 4. キーワード抽出
+# 5. キーワード抽出
 # =========================================
 df_unique = df_merged.select("product_name").distinct()
 df_unique_with_kw = df_unique.withColumn(
@@ -127,22 +199,19 @@ df_final = df_with_keywords \
     .withColumn("keyword_1", split(col("keywords_raw"), "\\|")[0]) \
     .withColumn("keyword_2", split(col("keywords_raw"), "\\|")[1]) \
     .drop("keywords_raw") \
-    .drop("expiry_date")
+    .drop("expiry_date")   # 機械学習に不要なため削除
 
 # =========================================
-# 5. 確認ログ
+# 6. 確認ログ
 # =========================================
 print(f"最終件数: {df_final.count()}")
-print(f"カラム: {df_final.columns}")
+print(f"最終カラム: {df_final.columns}")
 df_final.show(5, truncate=False)
 
 # =========================================
-# 6. Parquet出力
-#    集計せず個別レコードのまま出力
-#    data_date を保持して期間フィルタを有効化
+# 7. Parquet出力
 # =========================================
 OUTPUT_PATH = "s3://all-918375630428-ap-northeast-1-an/processed/training_data/"
-
 df_final.write.mode("overwrite").parquet(OUTPUT_PATH)
 
 job.commit()
