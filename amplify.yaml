@@ -3,10 +3,7 @@ frontend:
   phases:
     build:
       commands:
-        - echo "API_URL=${API_URL}"
-        - sed -i "s|newproduct_proposal_api|${API_URL}|g" index.html
-        - echo "=== 結果 ==="
-        - grep "API_URL" index.html
+        - echo "開始"
   artifacts:
     baseDirectory: /
     files:
