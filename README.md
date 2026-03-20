@@ -4,165 +4,128 @@
 
 ## 機能概要
 
-- **機能①** SNSバズ検知・在庫増加提案
-- **機能②** 店舗在庫管理・賞味期限切れ通知
-- **機能③** データ分析・新商品提案
-
-## システム構成
-
-| 機能 | 主なAWSサービス |
-|---|---|
-| 機能① | EventBridge, Lambda, Bedrock, DynamoDB, SNS |
-| 機能② | API Gateway, Lambda, S3, Bedrock, DynamoDB, EventBridge, Discord Webhook, Location Service |
-| 機能③ | S3, Glue, SageMaker, QuickSight, Bedrock |
+| 機能 | 内容 | 主なAWSサービス |
+|---|---|---|
+| 機能① | SNSバズ検知・在庫増加提案 | EventBridge, Lambda, Bedrock, DynamoDB, SNS |
+| 機能② | 店舗在庫管理・賞味期限切れ通知 | API Gateway, Lambda, S3, Bedrock, DynamoDB, EventBridge, Discord |
+| 機能③ | 売上データ分析・新商品提案 | S3, Glue, Athena, Bedrock |
 
 ---
 
-## 機能② 詳細仕様：店舗在庫管理・賞味期限切れ通知
+## 機能① SNSバズ検知・在庫増加提案
 
-### コンセプト
-
-「今、ここにあるおトク」
-ユーザーがアプリを開いてボタンを押した瞬間、その場所から半径1km以内にある店舗の **期限間近＝割引商品** をリストアップするサービス。
-
-- **ターゲット**: 節約したい学生・会社員、食品ロス削減に貢献したいユーザー
-- **価値**: 「安い」という実利と「社会貢献」を両立
-- **強み**: 常時位置追跡を行わないため、プライバシー保護と低消費電力を実現
-
----
-
-### AWSアーキテクチャ構成
-
-| サービス | 役割 |
-|---|---|
-| AWS Amplify | フロントエンド（React）のホスティング |
-| Amazon API Gateway | リクエスト受付（プロキシ統合） |
-| AWS Lambda | 判定・クエリロジックの実行（Python / Boto3） |
-| Amazon DynamoDB | 店舗情報および商品在庫の管理 |
-| Amazon S3 | 商品画像の保存（Pre-signed URL経由） |
-| Amazon Bedrock | 商品画像からの情報抽出（AI分析） |
-| Amazon EventBridge | 定期実行スケジューラー（毎朝通知トリガー） |
-| Discord Webhook | 期限切れアラートの通知先 |
-| AWS Location Service | Place Indexを利用した半径1km以内の店舗検索 |
-
----
+SNS上のトレンドをリアルタイムで検知し、売れ筋商品の在庫増加をスタッフに提案する。
 
 ### 処理フロー
-
-#### スタッフ側（在庫登録フロー）
-
 ```
-1. スタッフが商品画像（最大3枚）をアップロード / カメラ撮影
-2. フロントエンド（StaffPage）が以下を並行実行：
-   a. give_URL Lambda → S3 Pre-signed URL取得 → 画像をS3に直接PUT
-   b. Bedrock API → 画像からJSON形式で商品情報を抽出（品名・賞味期限・在庫数）
-3. スタッフが在庫数を手動入力・AI抽出結果を確認・編集
-4. 確定後、DynamoDB（function_2テーブル）に商品情報を登録
+EventBridge（定期実行）
+  → collect_sns_data Lambda：SNSデータ収集・S3保存
+  → calculate_buzz Lambda：Bedrockでバズスコア算出
+  → stream_processor Lambda：DynamoDB更新・SNS通知
 ```
 
-#### 顧客側（近隣割引商品検索フロー）
-
+### 主要ファイル
 ```
-1. 顧客がWebアプリ上の「おトク情報を探す」ボタンをクリック
-2. ブラウザのGeolocation API（navigator.geolocation）で緯度・経度を1回のみ取得
-3. API Gateway 経由で AWS Lambda に座標をPOST送信
-4. Lambda が AWS Location Service を使用し、半径1km以内の店舗を特定
-5. 特定された店舗IDをキーにDynamoDBをクエリし、期限間近の商品を抽出
-6. フロントエンド（CustomerPage）でカード形式で商品一覧を表示
-```
-
-#### 通知フロー（自動アラート）
-
-```
-1. Amazon EventBridge が毎朝定刻にトリガー
-2. notify_expiration Lambda が起動
-3. DynamoDB（function_2テーブル）を全件スキャン
-4. 本日から3日以内（THRESHOLD_DAYS）に期限が到来する商品を抽出
-5. Discord Webhook にEmbedメッセージとしてPOST送信
-   - 期限切れ → 赤色（⚠️ 既に期限が切れています！）
-   - 本日期限 → 赤色（🚨 本日が消費期限です）
-   - 翌日期限 → オレンジ（明日が消費期限です）
-   - 3日以内  → 黄色（残り N 日）
+feature1/
+├── lambda_handlers/
+│   ├── collect_sns_data.py   # SNSデータ収集
+│   ├── calculate_buzz.py     # バズスコア算出
+│   └── stream_processor.py  # DynamoDB更新・通知
+└── template.yaml             # SAMテンプレート
 ```
 
 ---
 
-### DynamoDB テーブル設計
+## 機能② 店舗在庫管理・賞味期限切れ通知
 
-#### `function_2` テーブル（在庫管理）
+### スタッフ側フロー
+```
+商品画像アップロード（最大3枚）
+  → S3保存（Pre-signed URL）＋ Bedrock AI分析（並行実行）
+  → 商品名・賞味期限をAIが自動抽出 → スタッフが確認・編集
+  → DynamoDB（function_2テーブル）に登録
+```
+
+### 顧客側フロー
+```
+「近くのコンビニを探す」ボタン
+  → Geolocation APIで現在地取得（1回のみ）
+  → API Gateway → Lambda：Haversine公式で半径1km以内の店舗を特定
+  → DynamoDBから期限間近の商品を抽出 → カード形式で表示
+```
+
+### 通知フロー
+```
+EventBridge（毎朝定刻）→ notify_expiration Lambda
+  → DynamoDBをスキャンし期限3日以内の商品をDiscord通知
+```
+
+### DynamoDBテーブル
+
+**`function_2`（在庫管理）**
 
 | 属性名 | 型 | 説明 |
 |---|---|---|
-| `product_name` | String | 商品名（PK） |
-| `expiration_date` | String | 消費期限（`YYYY/MM/DD` 形式） |
-| `stock_quantity` | Number | 在庫数（0以下は通知対象外） |
+| `SSID` | Number (PK) | セッションID |
+| `product_name` | String | 商品名 |
+| `expiration_date` | String | 消費期限（YYYY/MM/DD） |
+| `stock_quantity` | Number | 在庫数 |
+| `StoreID` | String | 店舗ID |
 
-> **注意**: ソートキーに期限を含めることで、現在時刻に近い商品を高速スキャン可能。大規模運用時はGSI推奨。
-
-#### `Stores` テーブル（店舗情報）
+**`Stores`（店舗情報）**
 
 | 属性名 | 型 | 説明 |
 |---|---|---|
-| `StoreID` | String | 店舗ID（PK） |
+| `StoreID` | String (PK) | 店舗ID |
 | `StoreName` | String | 店舗名 |
-| `Coordinates` | Map | 緯度（Lat）・経度（Lng） |
+| `Lat` / `Lng` | Number | 緯度・経度 |
 
----
+### Lambda関数
 
-### Lambda 関数仕様
+| 関数名 | トリガー | 役割 |
+|---|---|---|
+| `give_URL.py` | API Gateway POST `/upload` | S3 Pre-signed URL発行 |
+| `pass_to_bedrock.py` | Lambda Function URL | 画像AI分析・DynamoDB保存 |
+| `search_nearby_stores.py` | API Gateway POST `/search` | 近隣店舗・期限商品検索 |
+| `notify_expiration.py` | EventBridge（定期） | Discord期限切れ通知 |
 
-#### `give_URL.py` — S3 Pre-signed URL 発行
-
-- **トリガー**: API Gateway POST `/upload`
-- **入力**: `{ "fileName": "商品名.jpg", "fileType": "image/jpeg" }`
-- **処理**: `uploads/{timestamp}-{fileName}` のキーでPut用Pre-signed URL（有効期限5分）を生成
-- **出力**: `{ "presignedUrl": "...", "url": "https://...", "key": "..." }`
-- **環境変数**:
-  - `BUCKET_NAME` — アップロード先S3バケット名
-
-#### `notify_expiration.py` — 期限切れ通知
-
-- **トリガー**: Amazon EventBridge（定期実行）
-- **処理**: DynamoDBをスキャンし、期限が`THRESHOLD_DAYS`日以内の在庫ありアイテムをDiscordに通知
-- **環境変数**:
-  - `DYNAMODB_TABLE_NAME` — 対象テーブル名（デフォルト: `function_2`）
-  - `DISCORD_WEBHOOK_URL` — Discord Webhook URL（必須）
-  - `THRESHOLD_DAYS` — 通知する残り日数の閾値（デフォルト: `3`）
-
----
-
-### フロントエンド構成
-
-```
-frontend/src/
-├── App.jsx          # ページルーティング（top / staff / customer）
-├── main.jsx         # エントリーポイント
-└── pages/
-    ├── TopPage.jsx      # トップページ（スタッフ/顧客への導線）
-    ├── StaffPage.jsx    # スタッフ向け：商品画像アップロード・AI分析・在庫登録
-    └── CustomerPage.jsx # 顧客向け：近隣割引商品の検索・表示（開発中）
-```
-
-#### `StaffPage.jsx` の主な機能
-
-- ファイル選択 / カメラ撮影（最大3枚）
-- 画像プレビューとドラッグ＆ドロップ対応
-- S3への直接アップロード（Pre-signed URL使用）と Bedrock AI分析を並行実行
-- AI抽出結果のテキスト編集（修正可能）
-- 在庫数の手動入力
-
-#### `CustomerPage.jsx` の主な機能（実装予定）
-
-- 「おトク情報を探す」ボタンで位置情報を1回取得
-- 半径1km以内の期限間近商品をカード形式で表示
-
----
-
-### 環境変数
-
-`frontend/.env`（`.env.example` を参考に作成）
+### 環境変数（`frontend/.env`）
 
 | 変数名 | 説明 |
 |---|---|
-| `VITE_API_URL` | S3 Pre-signed URL発行API（API Gateway エンドポイント） |
-| `VITE_BEDROCK_API_URL` | Bedrock AI分析API（API Gateway エンドポイント） |
+| `VITE_API_URL` | S3 Pre-signed URL発行エンドポイント |
+| `VITE_BEDROCK_API_URL` | Bedrock AI分析 Lambda Function URL |
+| `VITE_SEARCH_API_URL` | 近隣店舗検索エンドポイント |
+
+---
+
+## 機能③ 売上データ分析・新商品提案
+
+過去の売上データをGlue・Athenaで分析し、Bedrockが新商品を提案する。
+
+### 処理フロー
+```
+S3（売上データ）→ Glue（キーワード抽出・人気スコア算出）
+  → Athena（SQLクエリ）→ Bedrock（新商品提案・画像生成）→ フロント表示
+```
+
+### 主要ファイル
+```
+src/
+├── glue.py       # Glueジョブ：キーワード抽出・スコア算出
+└── athena.sql    # 人気スコア集計クエリ
+```
+
+---
+
+## フロントエンド
+
+```
+frontend/src/pages/
+├── TopPage.jsx      # トップ（店員用 / 顧客用 / 商品開発側 / 在庫管理側）
+├── StaffPage.jsx    # 店員用：画像アップロード・AI分析・在庫登録
+└── CustomerPage.jsx # 顧客用：近隣コンビニ・期限間近商品の表示
+
+frontend/public/
+└── product-dev.html # 商品開発側（機能③フロントエンド）
+```
