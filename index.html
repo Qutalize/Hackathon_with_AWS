@@ -47,13 +47,16 @@
       border: none;
       border-radius: 8px;
       cursor: pointer;
+      transition: background 0.2s;
     }
+    .btn:hover:not(:disabled) { background: #e88a00; }
     .btn:disabled { background: #ccc; cursor: not-allowed; }
     #status {
       text-align: center;
       color: #666;
       margin-bottom: 12px;
       font-size: 15px;
+      min-height: 24px;
     }
     .period-label {
       text-align: center;
@@ -92,12 +95,26 @@
       font-size: 13px;
     }
     .trend-item:last-child { border-bottom: none; }
-    .trend-score { font-weight: bold; font-size: 14px; min-width: 60px; text-align: right; }
+    .trend-score {
+      font-weight: bold;
+      font-size: 14px;
+      min-width: 60px;
+      text-align: right;
+    }
     .score-positive { color: #27ae60; }
     .score-negative { color: #e74c3c; }
     .proposals { max-width: 1000px; margin: 0 auto; }
-    .proposals h2 { font-size: 20px; margin-bottom: 20px; color: #232f3e; text-align: center; }
-    .proposal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .proposals h2 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #232f3e;
+      text-align: center;
+    }
+    .proposal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
     @media(max-width: 700px) { .proposal-grid { grid-template-columns: 1fr; } }
     .proposal-card {
       background: #fff;
@@ -105,27 +122,73 @@
       overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    .proposal-card img { width: 100%; height: 200px; object-fit: cover; }
+    .proposal-card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+    }
     .no-image {
-      width: 100%; height: 200px;
+      width: 100%;
+      height: 200px;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14px;
     }
     .card-body { padding: 16px; }
-    .card-body h3 { font-size: 16px; margin-bottom: 10px; color: #232f3e; }
+    .card-body h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: #232f3e;
+    }
     .tag {
       display: inline-block;
-      background: #fff3e0; color: #e07b00;
-      border-radius: 4px; padding: 2px 8px;
-      font-size: 12px; margin: 2px 2px 8px 0;
+      background: #fff3e0;
+      color: #e07b00;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 12px;
+      margin: 2px 2px 8px 0;
     }
-    .card-body p { font-size: 13px; color: #555; line-height: 1.6; margin-top: 4px; }
-    .label { font-size: 11px; color: #999; margin-top: 8px; }
+    .card-body p {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.6;
+      margin-top: 4px;
+    }
+    .label {
+      font-size: 11px;
+      color: #999;
+      margin-top: 8px;
+    }
     .error-box {
-      max-width: 600px; margin: 0 auto; padding: 20px;
-      background: #ffeaea; border-radius: 8px;
-      color: #c0392b; text-align: center;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #ffeaea;
+      border-radius: 8px;
+      color: #c0392b;
+      text-align: center;
+    }
+    .loading-wrap {
+      text-align: center;
+      padding: 40px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #ff9900;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
@@ -145,9 +208,19 @@
   <button class="btn" id="btn" onclick="getProposal()">
     この期間で提案を生成する
   </button>
+
   <div id="status"></div>
   <div class="period-label" id="period-label"></div>
 
+  <!-- ローディング -->
+  <div id="loading" style="display:none">
+    <div class="loading-wrap">
+      <div class="spinner"></div>
+      <div id="loading-msg">データを分析中...</div>
+    </div>
+  </div>
+
+  <!-- トレンド表示 -->
   <div class="trends" id="trends" style="display:none">
     <div class="trend-box top">
       <h2>📈 人気トピック TOP10</h2>
@@ -159,6 +232,7 @@
     </div>
   </div>
 
+  <!-- 提案表示 -->
   <div class="proposals" id="proposals" style="display:none">
     <h2>💡 新商品提案</h2>
     <div class="proposal-grid" id="proposal-grid"></div>
@@ -167,52 +241,111 @@
   <div id="error-area"></div>
 
   <script>
-    const API_URL = "https://laofvdnywk.execute-api.ap-northeast-1.amazonaws.com/prod/generate-idea"
+    // ✅ Lambda Function URL をここに設定
+    const API_URL = "LAMBDA_FUNCTION_URL";
+
+    // ローディングメッセージを段階的に変化させる
+    const LOADING_MESSAGES = [
+      "⏳ データを分析中...",
+      "⏳ 新商品を考案中...",
+      "⏳ 商品画像を生成中...",
+      "⏳ もうすぐ完成です..."
+    ];
+    let msgInterval = null;
+
+    function startLoadingMessages() {
+      let index = 0;
+      document.getElementById("loading-msg").textContent = LOADING_MESSAGES[0];
+      msgInterval = setInterval(() => {
+        index = (index + 1) % LOADING_MESSAGES.length;
+        document.getElementById("loading-msg").textContent = LOADING_MESSAGES[index];
+      }, 8000);
+    }
+
+    function stopLoadingMessages() {
+      if (msgInterval) {
+        clearInterval(msgInterval);
+        msgInterval = null;
+      }
+    }
+
     async function getProposal() {
       const btn      = document.getElementById("btn");
-      const status   = document.getElementById("status");
       const dateFrom = document.getElementById("date-from").value;
       const dateTo   = document.getElementById("date-to").value;
 
-      if (!dateFrom || !dateTo) { alert("開始日と終了日を選択してください"); return; }
-      if (dateFrom > dateTo)    { alert("開始日は終了日より前に設定してください"); return; }
+      // バリデーション
+      if (!dateFrom || !dateTo) {
+        alert("開始日と終了日を選択してください");
+        return;
+      }
+      if (dateFrom > dateTo) {
+        alert("開始日は終了日より前に設定してください");
+        return;
+      }
 
+      // UI リセット
       btn.disabled    = true;
       btn.textContent = "生成中...";
-      status.textContent = "⏳ データを分析中...（約15秒かかります）";
-      document.getElementById("period-label").textContent = "";
-      document.getElementById("trends").style.display    = "none";
-      document.getElementById("proposals").style.display = "none";
-      document.getElementById("error-area").innerHTML    = "";
+      document.getElementById("status").textContent        = "";
+      document.getElementById("period-label").textContent  = "";
+      document.getElementById("trends").style.display      = "none";
+      document.getElementById("proposals").style.display   = "none";
+      document.getElementById("error-area").innerHTML      = "";
+      document.getElementById("loading").style.display     = "block";
+
+      startLoadingMessages();
 
       try {
-        const res  = await fetch(API_URL, {
+        const res = await fetch(API_URL, {
           method:  "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date_from: dateFrom, date_to: dateTo })
+          body: JSON.stringify({
+            date_from: dateFrom,
+            date_to:   dateTo
+          })
         });
 
-        const data = await res.json();
-        const body = JSON.parse(data.body);
+        const rawText = await res.text();
+        console.log("レスポンス:", rawText);
 
+        const data = JSON.parse(rawText);
+
+        // Lambda Function URL は body が文字列の場合とオブジェクトの場合がある
+        const body = typeof data.body === "string"
+          ? JSON.parse(data.body)
+          : data;
+
+        // エラーチェック
         if (body.error) {
-          document.getElementById("error-area").innerHTML =
-            `<div class="error-box">⚠️ ${body.error}<br>
-             <small>期間：${dateFrom} 〜 ${dateTo}</small></div>`;
-          status.textContent = "";
+          document.getElementById("error-area").innerHTML = `
+            <div class="error-box">
+              ⚠️ ${body.error}<br>
+              <small>期間：${dateFrom} 〜 ${dateTo}</small>
+            </div>`;
           return;
         }
 
+        // 分析期間ラベル
         document.getElementById("period-label").textContent =
           `分析期間：${body.date_from} 〜 ${body.date_to}`;
 
+        // トレンド表示
         renderTrends(body.top_trends, body.worst_trends);
+
+        // 提案＋画像表示
         renderProposals(body.proposals, body.images || []);
-        status.textContent = "✅ 生成完了";
+
+        document.getElementById("status").textContent = "✅ 生成完了";
 
       } catch(e) {
-        status.textContent = "❌ エラー：" + e.message;
+        console.error("エラー:", e);
+        document.getElementById("error-area").innerHTML = `
+          <div class="error-box">❌ エラー：${e.message}</div>`;
+
       } finally {
+        stopLoadingMessages();
+        document.getElementById("loading").style.display = "none";
         btn.disabled    = false;
         btn.textContent = "この期間で提案を生成する";
       }
@@ -222,7 +355,7 @@
       document.getElementById("top-list").innerHTML =
         topList.map((r, i) => `
           <div class="trend-item">
-            <span>${i+1}. ${r.genre} × ${r.keyword_1} × ${r.keyword_2}</span>
+            <span>${i + 1}. ${r.genre} × ${r.keyword_1} × ${r.keyword_2}</span>
             <span class="trend-score score-positive">
               +${parseFloat(r.popularity_score).toFixed(1)}
             </span>
@@ -231,7 +364,7 @@
       document.getElementById("worst-list").innerHTML =
         worstList.map((r, i) => `
           <div class="trend-item">
-            <span>${i+1}. ${r.genre} × ${r.keyword_1} × ${r.keyword_2}</span>
+            <span>${i + 1}. ${r.genre} × ${r.keyword_1} × ${r.keyword_2}</span>
             <span class="trend-score score-negative">
               ${parseFloat(r.popularity_score).toFixed(1)}
             </span>
@@ -261,8 +394,10 @@
               <div class="card-body">
                 <h3>${name}</h3>
                 <span class="tag">${genre}</span>${tags}
-                <p class="label">📊 根拠</p><p>${basis}</p>
-                <p class="label">🎯 ターゲット</p><p>${target}</p>
+                <p class="label">📊 根拠</p>
+                <p>${basis}</p>
+                <p class="label">🎯 ターゲット</p>
+                <p>${target}</p>
               </div>
             </div>`;
         }).join("");
