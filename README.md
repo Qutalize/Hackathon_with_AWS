@@ -89,14 +89,6 @@ EventBridge（毎朝定刻）→ notify_expiration Lambda
 | `search_nearby_stores.py` | API Gateway POST `/search` | 近隣店舗・期限商品検索 |
 | `notify_expiration.py` | EventBridge（定期） | Discord期限切れ通知 |
 
-### 環境変数（`frontend/.env`）
-
-| 変数名 | 説明 |
-|---|---|
-| `VITE_API_URL` | S3 Pre-signed URL発行エンドポイント |
-| `VITE_BEDROCK_API_URL` | Bedrock AI分析 Lambda Function URL |
-| `VITE_SEARCH_API_URL` | 近隣店舗検索エンドポイント |
-
 ---
 
 ## 機能③ 売上データ分析・新商品提案
