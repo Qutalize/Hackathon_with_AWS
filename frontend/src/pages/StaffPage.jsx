@@ -294,6 +294,7 @@ export default function StaffPage({ onNavigate }) {
   const [globalStatus, setGlobalStatus] = useState(null);
   const [btnHover2, setBtnHover2] = useState(false);
   const [stockQuantity, setStockQuantity] = useState(0);
+  const [storeId, setStoreId] = useState("");
 
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
@@ -388,6 +389,8 @@ export default function StaffPage({ onNavigate }) {
   const handleProcessAll = async () => {
     const filesToProcess = filesState.filter(f => !f.analysis_result);
     if (filesToProcess.length === 0) return;
+    if (!storeId.trim()) { setGlobalStatus({ type: "error", message: "店舗IDを入力してください。" }); return; }
+    if (!stockQuantity || Number(stockQuantity) < 1) { setGlobalStatus({ type: "error", message: "在庫数は1以上を入力してください。" }); return; }
     const bedrockApiUrl = import.meta.env.VITE_BEDROCK_API_URL;
     if (!bedrockApiUrl) { setGlobalStatus({ type: "error", message: ".env に VITE_BEDROCK_API_URL を設定してください。" }); return; }
     setUploading(true);
@@ -400,7 +403,7 @@ export default function StaffPage({ onNavigate }) {
       const res = await fetch(bedrockApiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ images: base64Images, stock: stockQuantity, ssid }),
+        body: JSON.stringify({ images: base64Images, stock: stockQuantity, store_id: `store_${storeId}`, ssid }),
       });
       let data = await res.json();
       if (typeof data.body === "string") data = JSON.parse(data.body);
@@ -436,6 +439,7 @@ export default function StaffPage({ onNavigate }) {
     }
     setUploading(false);
     setStockQuantity(0);
+    setStoreId("");
   };
 
   const isBtnDisabled = filesState.filter(f => !f.uploadedUrl && !f.analysis_result).length === 0 || uploading;
@@ -537,19 +541,33 @@ export default function StaffPage({ onNavigate }) {
         })()}
 
         {filesState.filter(f => !f.uploadedUrl && !f.analysis_result).length > 0 && (
-          <div style={styles.stockContainer}>
-            <label style={styles.stockLabel} htmlFor="stockInput">在庫数を入力（一括）</label>
-            <input
-              id="stockInput"
-              type="number"
-              min="0"
-              style={styles.stockInput}
-              value={stockQuantity}
-              onChange={(e) => setStockQuantity(e.target.value === '' ? '' : Number(e.target.value))}
-              disabled={uploading}
-              placeholder="0"
-            />
-          </div>
+          <>
+            <div style={styles.stockContainer}>
+              <label style={styles.stockLabel} htmlFor="storeIdInput">店舗ID</label>
+              <input
+                id="storeIdInput"
+                type="text"
+                style={styles.stockInput}
+                value={storeId}
+                onChange={(e) => setStoreId(e.target.value)}
+                disabled={uploading}
+                placeholder="0001"
+              />
+            </div>
+            <div style={styles.stockContainer}>
+              <label style={styles.stockLabel} htmlFor="stockInput">在庫数を入力（一括）</label>
+              <input
+                id="stockInput"
+                type="number"
+                min="1"
+                style={styles.stockInput}
+                value={stockQuantity}
+                onChange={(e) => setStockQuantity(e.target.value === '' ? '' : Number(e.target.value))}
+                disabled={uploading}
+                placeholder="0"
+              />
+            </div>
+          </>
         )}
 
         <button

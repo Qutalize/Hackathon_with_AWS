@@ -43,6 +43,8 @@ def pass_to_bedrock(event, context):
         stock_quantity = body.get("stock", 0)
         if stock_quantity == "" or stock_quantity is None:
             stock_quantity = 0
+
+        store_id = body.get("store_id", "")
         
         if not images_data or len(images_data) == 0:
             return {
@@ -161,6 +163,7 @@ def pass_to_bedrock(event, context):
         item = {
             "SSID": item_id,
             "stock_quantity": Decimal(str(stock_quantity)),
+            "StoreID": store_id,
             "created_at": timestamp
         }
         
