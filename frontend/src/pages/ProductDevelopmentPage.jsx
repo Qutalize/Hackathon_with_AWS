@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 
-const API_URL = "LAMBDA_FUNCTION_URL"; // ← あなたのLambda URLに変更
+const API_URL = import.meta.env.VITE_LAMBDA_URL;
 
 const LOADING_MESSAGES = [
   "⏳ データを分析中...",
