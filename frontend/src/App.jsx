@@ -9,5 +9,6 @@ export default function App() {
 
   if (page === "staff") return <StaffPage onNavigate={setPage} />;
   if (page === "customer") return <CustomerPage onNavigate={setPage} />;
+  if (page === "product")  return <ProductDevelopmentPage onNavigate={setPage} />;
   return <TopPage onNavigate={setPage} />;
 }
