@@ -11,7 +11,7 @@
 | 機能③ | 売上データ分析・新商品提案 | S3, Glue, Athena, Bedrock |
 
 ---
-##アーキテクチャ
+## アーキテクチャ
 
 <p align="center">
   <img src="images/Last.drawio.png" width="500">
