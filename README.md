@@ -14,7 +14,7 @@
 ##アーキテクチャ
 
 <p align="center">
-  <img src="images/final.drawio.png" width="500">
+  <img src="images/Last.drawio.png" width="500">
 </p>
 
 ---
