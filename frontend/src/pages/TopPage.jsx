@@ -1,3 +1,4 @@
+const INVENTORY_URL = import.meta.env.VITE_INVENTORY_URL;
 export default function TopPage({ onNavigate }) {
   return (
     <div style={styles.container}>
@@ -27,7 +28,12 @@ export default function TopPage({ onNavigate }) {
         >
           商品開発側
         </button>
-        <button style={styles.btnDisabled}>
+        <button
+          style={styles.btn("#6366f1")} 
+          onClick={() => window.location.href = INVENTORY_URL}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = "#4338ca"}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = "#6366f1"}
+        >
           在庫管理側
         </button>
       </div>
