@@ -1,21 +1,25 @@
-export default function TopPage({ onNavigate }) {
+import { useNavigate } from "react-router-dom";
+
+export default function TopPage() {
+  const navigate = useNavigate();
+
   return (
     <div style={styles.container}>
       <h1 style={styles.title}>コンビニ在庫管理アプリ</h1>
       <div style={styles.buttonGroup}>
-        <button style={styles.btn("#6366f1")} onClick={() => onNavigate("staff")}
+        <button style={styles.btn("#6366f1")} onClick={() => navigate("/staff")}
           onMouseEnter={e => e.currentTarget.style.backgroundColor = "#4f46e5"}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = "#6366f1"}
         >
           店員用
         </button>
-        <button style={styles.btn("#10b981")} onClick={() => onNavigate("customer")}
+        <button style={styles.btn("#10b981")} onClick={() => navigate("/customer")}
           onMouseEnter={e => e.currentTarget.style.backgroundColor = "#059669"}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = "#10b981"}
         >
           顧客用
         </button>
-        <button style={styles.btn("#f59e0b")} onClick={() => window.location.href = "/product-dev.html"}
+        <button style={styles.btn("#f59e0b")} onClick={() => window.location.href = "https://feature-function-3.d1j5ga680fntkq.amplifyapp.com"}
           onMouseEnter={e => e.currentTarget.style.backgroundColor = "#d97706"}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = "#f59e0b"}
         >
