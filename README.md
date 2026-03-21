@@ -159,10 +159,10 @@ src/
 
 ```
 frontend/src/pages/
-├── TopPage.jsx      # トップ（店員用 / 顧客用 / 商品開発側 / 在庫管理側）
-├── StaffPage.jsx    # 店員用：画像アップロード・AI分析・在庫登録
-└── CustomerPage.jsx # 顧客用：近隣コンビニ・期限間近商品の表示
+├── TopPage.jsx                # トップ（店員 / 顧客 / 商品開発者 / 在庫管理担当者）
+├── StaffPage.jsx              # 店員：画像アップロード・AI分析・在庫登録
+├── CustomerPage.jsx           # 顧客：近隣コンビニ・期限間近商品の表示
+└── ProductDevelopmentPage.jsx # 商品開発側（機能③フロントエンド）
+(在庫管理担当者用のページはTopPage.jsxにリンクを貼っている)
 
-frontend/public/
-└── product-dev.html # 商品開発側（機能③フロントエンド）
 ```
