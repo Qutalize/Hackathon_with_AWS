@@ -1,8 +1,16 @@
 export default function TopPage({ onNavigate }) {
   return (
     <div style={styles.container}>
-      <h1 style={styles.title}>コンビニ在庫管理アプリ</h1>
+      <h1 style={styles.title}>一石四鳥コンビニ在庫アプリ</h1>
       <div style={styles.buttonGroup}>
+        <button
+          style={styles.btn("#f87171")} 
+          onClick={() => window.location.href = "https://prod.dlv6xelof2itp.amplifyapp.com/subscribe.html"}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = "#4338ca"}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = "#6366f1"}
+        >
+          在庫管理側
+        </button>
         <button
           style={styles.btn("#6366f1")}
           onClick={() => onNavigate("staff")}
@@ -26,14 +34,6 @@ export default function TopPage({ onNavigate }) {
           onMouseLeave={e => e.currentTarget.style.backgroundColor = "#f59e0b"}
         >
           商品開発側
-        </button>
-        <button
-          style={styles.btn("#6366f1")} 
-          onClick={() => window.location.href = "https://prod.dlv6xelof2itp.amplifyapp.com/subscribe.html"}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = "#4338ca"}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = "#6366f1"}
-        >
-          在庫管理側
         </button>
       </div>
     </div>
