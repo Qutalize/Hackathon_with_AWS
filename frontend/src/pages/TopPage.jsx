@@ -1,5 +1,3 @@
-import { useNavigate } from "react-router-dom";
-
 export default function TopPage() {
   const navigate = useNavigate();
 
