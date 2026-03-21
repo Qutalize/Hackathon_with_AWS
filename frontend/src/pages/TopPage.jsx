@@ -21,7 +21,7 @@ export default function TopPage({ onNavigate }) {
         </button>
         <button
           style={styles.btn("#f59e0b")}
-          onClick={() => window.location.href = "https://feature-function-3.d1j5ga680fntkq.amplifyapp.com"}
+          onClick={() => onNavigate("product")}
           onMouseEnter={e => e.currentTarget.style.backgroundColor = "#d97706"}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = "#f59e0b"}
         >
