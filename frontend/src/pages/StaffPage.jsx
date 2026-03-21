@@ -1,83 +1,164 @@
 import { useState, useRef, useEffect } from "react";
 
+const COLOR = {
+  primary: "#6366f1",
+  primaryHover: "#4f46e5",
+  primaryLight: "#eef2ff",
+  success: "#10b981",
+  successHover: "#059669",
+  successLight: "#f0fdf4",
+  error: "#ef4444",
+  errorLight: "#fef2f2",
+  info: "#3b82f6",
+  infoLight: "#eff6ff",
+  border: "#e5e7eb",
+  muted: "#6b7280",
+  text: "#1a1a2e",
+  textSub: "#374151",
+  bg: "#f8fafc",
+  card: "#ffffff",
+};
+
 const styles = {
-  container: {
+  page: {
     minHeight: "100vh",
-    backgroundColor: "#f0f2f5",
+    background: "linear-gradient(135deg, #f0f4ff 0%, #f8fafc 100%)",
     display: "flex",
-    alignItems: "center",
+    alignItems: "flex-start",
     justifyContent: "center",
     fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    padding: "20px",
+    padding: "32px 16px",
     boxSizing: "border-box",
   },
   card: {
-    backgroundColor: "#ffffff",
-    borderRadius: "12px",
-    boxShadow: "0 4px 24px rgba(0, 0, 0, 0.1)",
-    padding: "40px",
+    backgroundColor: COLOR.card,
+    borderRadius: "20px",
+    boxShadow: "0 8px 40px rgba(99,102,241,0.10), 0 2px 8px rgba(0,0,0,0.06)",
+    padding: "40px 36px",
     width: "100%",
     maxWidth: "600px",
     boxSizing: "border-box",
   },
-  title: {
-    fontSize: "24px",
-    fontWeight: "700",
-    color: "#1a1a2e",
-    marginBottom: "8px",
+  backBtn: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    marginBottom: "20px",
+    background: "none",
+    border: "none",
+    color: COLOR.muted,
+    cursor: "pointer",
+    fontSize: "13px",
+    padding: "4px 0",
+    transition: "color 0.2s",
+  },
+  header: {
     textAlign: "center",
+    marginBottom: "28px",
+  },
+  badge: {
+    display: "inline-block",
+    backgroundColor: COLOR.primaryLight,
+    color: COLOR.primary,
+    fontSize: "11px",
+    fontWeight: "700",
+    letterSpacing: "0.08em",
+    padding: "3px 12px",
+    borderRadius: "999px",
+    marginBottom: "10px",
+  },
+  title: {
+    fontSize: "26px",
+    fontWeight: "800",
+    color: COLOR.text,
+    margin: "0 0 6px 0",
   },
   subtitle: {
-    fontSize: "14px",
-    color: "#6b7280",
-    textAlign: "center",
-    marginBottom: "24px",
+    fontSize: "13px",
+    color: COLOR.muted,
+    margin: 0,
   },
   tabContainer: {
     display: "flex",
-    borderBottom: "2px solid #e5e7eb",
+    backgroundColor: COLOR.bg,
+    borderRadius: "12px",
+    padding: "4px",
     marginBottom: "24px",
+    gap: "4px",
   },
   tab: (active) => ({
     flex: 1,
-    padding: "10px",
+    padding: "10px 0",
     textAlign: "center",
     fontWeight: "600",
     fontSize: "14px",
     cursor: "pointer",
     border: "none",
-    background: "none",
-    color: active ? "#6366f1" : "#6b7280",
-    borderBottom: active ? "2px solid #6366f1" : "2px solid transparent",
-    marginBottom: "-2px",
-    transition: "color 0.2s",
+    borderRadius: "9px",
+    background: active ? COLOR.card : "transparent",
+    color: active ? COLOR.primary : COLOR.muted,
+    boxShadow: active ? "0 1px 4px rgba(0,0,0,0.10)" : "none",
+    transition: "all 0.2s",
   }),
+  statusBox: (type) => ({
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "12px 16px",
+    borderRadius: "10px",
+    fontSize: "13px",
+    marginBottom: "16px",
+    backgroundColor:
+      type === "success" ? COLOR.successLight
+      : type === "error" ? COLOR.errorLight
+      : COLOR.infoLight,
+    color:
+      type === "success" ? "#065f46"
+      : type === "error" ? "#991b1b"
+      : "#1e40af",
+    border: `1px solid ${
+      type === "success" ? "#bbf7d0"
+      : type === "error" ? "#fecaca"
+      : "#bfdbfe"
+    }`,
+  }),
+  fileCount: {
+    fontSize: "12px",
+    fontWeight: "700",
+    color: COLOR.muted,
+    marginBottom: "12px",
+    textAlign: "right",
+    letterSpacing: "0.04em",
+  },
   dropZone: {
-    border: "2px dashed #d1d5db",
-    borderRadius: "8px",
-    padding: "24px 20px",
+    border: `2px dashed ${COLOR.border}`,
+    borderRadius: "14px",
+    padding: "32px 20px",
     textAlign: "center",
     cursor: "pointer",
     transition: "border-color 0.2s, background-color 0.2s",
-    backgroundColor: "#fafafa",
+    backgroundColor: COLOR.bg,
     marginBottom: "20px",
   },
   dropZoneHover: {
-    borderColor: "#6366f1",
-    backgroundColor: "#eef2ff",
-  },
-  dropZoneText: {
-    fontSize: "14px",
-    color: "#6b7280",
-    marginTop: "8px",
+    borderColor: COLOR.primary,
+    backgroundColor: COLOR.primaryLight,
   },
   dropZoneIcon: {
-    fontSize: "36px",
-    marginBottom: "8px",
+    fontSize: "40px",
+    marginBottom: "10px",
   },
-  fileInput: {
-    display: "none",
+  dropZoneText: {
+    fontSize: "15px",
+    fontWeight: "600",
+    color: COLOR.textSub,
+    marginBottom: "4px",
   },
+  dropZoneSub: {
+    fontSize: "12px",
+    color: COLOR.muted,
+  },
+  fileInput: { display: "none" },
   previewGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
@@ -85,11 +166,12 @@ const styles = {
     marginBottom: "20px",
   },
   previewCard: {
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
+    border: `1px solid ${COLOR.border}`,
+    borderRadius: "12px",
     overflow: "hidden",
     position: "relative",
-    backgroundColor: "#f9fafb",
+    backgroundColor: COLOR.bg,
+    boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
   },
   previewImage: {
     width: "100%",
@@ -98,23 +180,23 @@ const styles = {
     display: "block",
   },
   previewInfo: {
-    padding: "8px",
-    fontSize: "12px",
-    color: "#374151",
-    backgroundColor: "#fff",
+    padding: "8px 10px",
+    fontSize: "11px",
+    color: COLOR.textSub,
+    backgroundColor: COLOR.card,
   },
   fileName: {
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis",
-    fontWeight: "600",
-    marginBottom: "4px",
+    fontWeight: "700",
+    marginBottom: "2px",
   },
   clearBtn: {
     position: "absolute",
-    top: "4px",
-    right: "4px",
-    background: "rgba(0,0,0,0.6)",
+    top: "6px",
+    right: "6px",
+    background: "rgba(0,0,0,0.55)",
     color: "white",
     border: "none",
     borderRadius: "50%",
@@ -126,55 +208,33 @@ const styles = {
     justifyContent: "center",
     fontSize: "14px",
     zIndex: 10,
+    backdropFilter: "blur(2px)",
   },
-  uploadButton: {
-    width: "100%",
-    padding: "12px",
-    backgroundColor: "#6366f1",
-    color: "#ffffff",
-    border: "none",
-    borderRadius: "8px",
-    fontSize: "15px",
-    fontWeight: "600",
-    cursor: "pointer",
-    transition: "background-color 0.2s",
-    marginBottom: "16px",
-  },
-  progressContainer: {
-    marginTop: "6px",
-  },
+  progressContainer: { marginTop: "6px" },
   progressBar: {
     height: "4px",
-    backgroundColor: "#e5e7eb",
+    backgroundColor: COLOR.border,
     borderRadius: "9999px",
     overflow: "hidden",
   },
   progressFill: {
     height: "100%",
-    backgroundColor: "#6366f1",
+    backgroundColor: COLOR.primary,
     borderRadius: "9999px",
     transition: "width 0.3s ease",
   },
   progressText: {
     fontSize: "10px",
-    color: "#6b7280",
-    marginTop: "4px",
+    color: COLOR.muted,
+    marginTop: "3px",
     textAlign: "right",
   },
-  statusBox: (type) => ({
-    padding: "12px 16px",
-    borderRadius: "8px",
-    fontSize: "14px",
-    marginBottom: "16px",
-    backgroundColor: type === "success" ? "#f0fdf4" : type === "error" ? "#fef2f2" : "#eff6ff",
-    color: type === "success" ? "#166534" : type === "error" ? "#991b1b" : "#1e40af",
-    border: `1px solid ${type === "success" ? "#bbf7d0" : type === "error" ? "#fecaca" : "#bfdbfe"}`,
-  }),
   cameraContainer: {
-    marginBottom: "20px",
-    borderRadius: "8px",
+    marginBottom: "16px",
+    borderRadius: "12px",
     overflow: "hidden",
     backgroundColor: "#000",
+    boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
   },
   cameraVideo: {
     width: "100%",
@@ -190,70 +250,108 @@ const styles = {
   captureButton: {
     flex: 1,
     padding: "12px",
-    backgroundColor: "#6366f1",
-    color: "#ffffff",
+    backgroundColor: COLOR.primary,
+    color: "#fff",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "10px",
     cursor: "pointer",
+    fontWeight: "700",
+    fontSize: "14px",
+    transition: "background-color 0.2s",
   },
   stopButton: {
     padding: "12px 16px",
-    backgroundColor: "#ef4444",
-    color: "#ffffff",
+    backgroundColor: COLOR.error,
+    color: "#fff",
     border: "none",
-    borderRadius: "8px",
+    borderRadius: "10px",
     cursor: "pointer",
+    fontWeight: "700",
+    fontSize: "14px",
   },
   startCameraButton: {
     width: "100%",
     padding: "32px 20px",
-    border: "2px dashed #d1d5db",
-    borderRadius: "8px",
-    backgroundColor: "#fafafa",
+    border: `2px dashed ${COLOR.border}`,
+    borderRadius: "14px",
+    backgroundColor: COLOR.bg,
     cursor: "pointer",
     marginBottom: "20px",
     fontSize: "15px",
-  },
-  fileCount: {
-    fontSize: "12px",
     fontWeight: "600",
-    color: "#4b5563",
-    marginBottom: "12px",
-    textAlign: "right",
+    color: COLOR.textSub,
+    transition: "border-color 0.2s, background-color 0.2s",
   },
-  stockContainer: {
+  inputRow: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "#f9fafb",
-    border: "1px solid #e5e7eb",
-    borderRadius: "8px",
-    padding: "12px 16px",
-    marginBottom: "16px",
+    backgroundColor: COLOR.bg,
+    border: `1px solid ${COLOR.border}`,
+    borderRadius: "12px",
+    padding: "14px 18px",
+    marginBottom: "12px",
   },
-  stockLabel: {
+  inputLabel: {
     fontSize: "14px",
-    fontWeight: "600",
-    color: "#374151",
+    fontWeight: "700",
+    color: COLOR.textSub,
   },
-  stockInput: {
-    width: "100px",
-    padding: "8px",
-    borderRadius: "6px",
-    border: "1px solid #d1d5db",
+  inputField: {
+    width: "110px",
+    padding: "8px 12px",
+    borderRadius: "8px",
+    border: `1.5px solid ${COLOR.border}`,
     fontSize: "15px",
     textAlign: "right",
+    outline: "none",
+    transition: "border-color 0.2s",
+    backgroundColor: COLOR.card,
+    color: COLOR.text,
   },
-  backBtn: {
-    display: "block",
-    marginBottom: "16px",
-    background: "none",
-    border: "none",
-    color: "#6b7280",
-    cursor: "pointer",
+  resultBox: {
+    marginBottom: "20px",
+    padding: "20px",
+    borderRadius: "14px",
+    border: `2px solid #10b981`,
+    backgroundColor: COLOR.successLight,
+  },
+  resultTitle: {
     fontSize: "14px",
-    padding: 0,
+    fontWeight: "800",
+    color: "#065f46",
+    marginBottom: "12px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
   },
+  resultTextarea: {
+    width: "100%",
+    fontSize: "13px",
+    padding: "12px",
+    borderRadius: "8px",
+    border: "1px solid #34d399",
+    backgroundColor: COLOR.card,
+    color: "#064e3b",
+    resize: "vertical",
+    minHeight: "150px",
+    boxSizing: "border-box",
+    lineHeight: "1.6",
+    fontFamily: "inherit",
+  },
+  actionButton: (disabled, color) => ({
+    width: "100%",
+    padding: "14px",
+    backgroundColor: disabled ? "#a5b4fc" : color,
+    color: "#fff",
+    border: "none",
+    borderRadius: "12px",
+    fontSize: "15px",
+    fontWeight: "700",
+    cursor: disabled ? "not-allowed" : "pointer",
+    transition: "background-color 0.2s, transform 0.1s",
+    letterSpacing: "0.02em",
+  }),
 };
 
 function formatFileSize(bytes) {
@@ -285,6 +383,8 @@ const compressImageBase64 = (file, maxWidth = 1600) => {
   });
 };
 
+const STATUS_ICON = { success: "✅", error: "❌", info: "ℹ️" };
+
 export default function StaffPage({ onNavigate }) {
   const [tab, setTab] = useState("file");
   const [filesState, setFilesState] = useState([]);
@@ -292,7 +392,7 @@ export default function StaffPage({ onNavigate }) {
   const [isDragging, setIsDragging] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
   const [globalStatus, setGlobalStatus] = useState(null);
-  const [btnHover2, setBtnHover2] = useState(false);
+  const [btnHover, setBtnHover] = useState(false);
   const [stockQuantity, setStockQuantity] = useState(0);
   const [storeId, setStoreId] = useState("");
 
@@ -356,7 +456,7 @@ export default function StaffPage({ onNavigate }) {
         previewUrl: URL.createObjectURL(f),
         status: null,
         progress: 0,
-        uploadedUrl: null
+        uploadedUrl: null,
       }));
       return [...prev, ...newItems];
     });
@@ -420,18 +520,18 @@ export default function StaffPage({ onNavigate }) {
           const presignRes = await fetch(s3ApiUrl, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fileName: newFileName, fileType: fileObj.file.type }) });
           let presignData = await presignRes.json();
           if (typeof presignData.body === "string") presignData = JSON.parse(presignData.body);
-          if (!presignRes.ok || presignData.error) throw new Error(presignData.error || `S3 API Error ${presignRes.status}`);
+          if (!presignRes.ok || presignData.error) throw new Error(presignData.error || `S3 API エラー ${presignRes.status}`);
           const s3Res = await fetch(presignData.presignedUrl, { method: "PUT", body: fileObj.file });
-          if (!s3Res.ok) throw new Error(`S3 Put Error ${s3Res.status}`);
+          if (!s3Res.ok) throw new Error(`S3 アップロードエラー ${s3Res.status}`);
           updateFileState(fileObj.id, { uploadedUrl: presignData.url });
         } catch (err) {
-          console.error(`S3 upload failed for ${fileObj.file.name}`, err);
+          console.error(`S3アップロード失敗: ${fileObj.file.name}`, err);
         }
       }));
     })();
     try {
       const [analysisResult] = await Promise.all([bedrockPromise, s3Promise]);
-      filesToProcess.forEach(f => updateFileState(f.id, { status: { type: "success", message: "分析＆保存 完了!" }, progress: 100, analysis_result: analysisResult }));
+      filesToProcess.forEach(f => updateFileState(f.id, { status: { type: "success", message: "分析・保存 完了！" }, progress: 100, analysis_result: analysisResult }));
       setGlobalStatus({ type: "success", message: "すべての処理が完了しました！" });
     } catch (err) {
       filesToProcess.forEach(f => updateFileState(f.id, { status: { type: "error", message: `分析失敗: ${err.message}` }, progress: 0 }));
@@ -443,22 +543,38 @@ export default function StaffPage({ onNavigate }) {
   };
 
   const isBtnDisabled = filesState.filter(f => !f.uploadedUrl && !f.analysis_result).length === 0 || uploading;
+  const uniqueResults = [...new Set(filesState.map(f => f.analysis_result).filter(Boolean))];
 
   return (
-    <div style={styles.container}>
+    <div style={styles.page}>
       <div style={styles.card}>
-        <button style={styles.backBtn} onClick={() => onNavigate("top")}>← トップに戻る</button>
-        <h1 style={styles.title}>Image Uploader</h1>
-        <p style={styles.subtitle}>Upload up to 3 images directly to AWS S3</p>
+        <button style={styles.backBtn} onClick={() => onNavigate("top")}>
+          ← トップに戻る
+        </button>
 
-        <div style={styles.tabContainer}>
-          <button style={styles.tab(tab === "file")} onClick={() => handleTabChange("file")}>ファイル選択</button>
-          <button style={styles.tab(tab === "camera")} onClick={() => handleTabChange("camera")}>カメラで撮影</button>
+        <div style={styles.header}>
+          <div style={styles.badge}>店員専用</div>
+          <h1 style={styles.title}>商品登録</h1>
+          <p style={styles.subtitle}>画像をアップロードしてAIで商品情報を自動抽出します（最大3枚）</p>
         </div>
 
-        {globalStatus && <div style={styles.statusBox(globalStatus.type)}>{globalStatus.message}</div>}
+        <div style={styles.tabContainer}>
+          <button style={styles.tab(tab === "file")} onClick={() => handleTabChange("file")}>
+            🗂 ファイルから選択
+          </button>
+          <button style={styles.tab(tab === "camera")} onClick={() => handleTabChange("camera")}>
+            📷 カメラで撮影
+          </button>
+        </div>
 
-        <div style={styles.fileCount}>選択 : {filesState.length} / 3 枚</div>
+        {globalStatus && (
+          <div style={styles.statusBox(globalStatus.type)}>
+            <span>{STATUS_ICON[globalStatus.type]}</span>
+            <span>{globalStatus.message}</span>
+          </div>
+        )}
+
+        <div style={styles.fileCount}>選択中：{filesState.length} / 3 枚</div>
 
         {tab === "file" && filesState.length < 3 && (
           <>
@@ -470,8 +586,8 @@ export default function StaffPage({ onNavigate }) {
               onDragLeave={() => setIsDragging(false)}
             >
               <div style={styles.dropZoneIcon}>{isDragging ? "📂" : "🖼️"}</div>
-              <div style={{ fontSize: "15px", color: "#374151" }}>Drag & drop images here</div>
-              <div style={styles.dropZoneText}>残り {3 - filesState.length} 枚追加可能</div>
+              <div style={styles.dropZoneText}>ここに画像をドラッグ＆ドロップ</div>
+              <div style={styles.dropZoneSub}>またはクリックしてファイルを選択・残り {3 - filesState.length} 枚追加可能</div>
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" multiple style={styles.fileInput} onChange={handleInputChange} />
           </>
@@ -480,12 +596,18 @@ export default function StaffPage({ onNavigate }) {
         {tab === "camera" && filesState.length < 3 && (
           <>
             {!cameraActive ? (
-              <button style={styles.startCameraButton} onClick={startCamera}>📷 カメラ起動</button>
+              <button style={styles.startCameraButton} onClick={startCamera}>
+                📷 カメラを起動する
+              </button>
             ) : (
               <>
-                <div style={styles.cameraContainer}><video ref={videoRef} style={styles.cameraVideo} autoPlay playsInline muted /></div>
+                <div style={styles.cameraContainer}>
+                  <video ref={videoRef} style={styles.cameraVideo} autoPlay playsInline muted />
+                </div>
                 <div style={styles.cameraControls}>
-                  <button style={styles.captureButton} onClick={handleCapture}>撮影 (残り{3 - filesState.length}枚)</button>
+                  <button style={styles.captureButton} onClick={handleCapture}>
+                    撮影する（残り {3 - filesState.length} 枚）
+                  </button>
                   <button style={styles.stopButton} onClick={stopCamera}>停止</button>
                 </div>
               </>
@@ -501,10 +623,10 @@ export default function StaffPage({ onNavigate }) {
                 {!uploading && !item.uploadedUrl && !item.analysis_result && (
                   <button style={styles.clearBtn} onClick={() => handleRemoveFile(item.id)}>&times;</button>
                 )}
-                <img src={item.previewUrl} alt="Preview" style={styles.previewImage} />
+                <img src={item.previewUrl} alt="プレビュー" style={styles.previewImage} />
                 <div style={styles.previewInfo}>
                   <div style={styles.fileName}>{item.file.name}</div>
-                  <div style={{ color: "#6b7280" }}>{formatFileSize(item.file.size)}</div>
+                  <div style={{ color: COLOR.muted }}>{formatFileSize(item.file.size)}</div>
                   {(uploading || item.progress > 0) && !item.analysis_result && (
                     <div style={styles.progressContainer}>
                       <div style={styles.progressBar}>
@@ -519,48 +641,50 @@ export default function StaffPage({ onNavigate }) {
           </div>
         )}
 
-        {(() => {
-          const uniqueResults = [...new Set(filesState.map(f => f.analysis_result).filter(Boolean))];
-          if (uniqueResults.length === 0) return null;
-          return (
-            <div style={{ marginBottom: "20px", padding: "20px", borderRadius: "8px", border: "2px solid #10b981", backgroundColor: "#f0fdf4" }}>
-              <div style={{ fontSize: "15px", fontWeight: "700", color: "#065f46", marginBottom: "12px" }}>✓ 抽出された商品情報（必要に応じて修正可能）</div>
-              {uniqueResults.map((res, idx) => (
-                <textarea
-                  key={idx}
-                  value={res}
-                  onChange={(e) => {
-                    const newVal = e.target.value;
-                    setFilesState(prev => prev.map(f => f.analysis_result === res ? { ...f, analysis_result: newVal } : f));
-                  }}
-                  style={{ width: "100%", fontSize: "14px", padding: "12px", borderRadius: "6px", border: "1px solid #34d399", backgroundColor: "#ffffff", color: "#064e3b", resize: "vertical", minHeight: "150px", boxSizing: "border-box", marginBottom: idx < uniqueResults.length - 1 ? "12px" : "0", lineHeight: "1.5" }}
-                />
-              ))}
+        {uniqueResults.length > 0 && (
+          <div style={styles.resultBox}>
+            <div style={styles.resultTitle}>
+              <span>✅</span>
+              <span>抽出された商品情報（必要に応じて修正できます）</span>
             </div>
-          );
-        })()}
+            {uniqueResults.map((res, idx) => (
+              <textarea
+                key={idx}
+                value={res}
+                onChange={(e) => {
+                  const newVal = e.target.value;
+                  setFilesState(prev => prev.map(f => f.analysis_result === res ? { ...f, analysis_result: newVal } : f));
+                }}
+                style={{
+                  ...styles.resultTextarea,
+                  marginBottom: idx < uniqueResults.length - 1 ? "12px" : "0",
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {filesState.filter(f => !f.uploadedUrl && !f.analysis_result).length > 0 && (
           <>
-            <div style={styles.stockContainer}>
-              <label style={styles.stockLabel} htmlFor="storeIdInput">店舗ID</label>
+            <div style={styles.inputRow}>
+              <label style={styles.inputLabel} htmlFor="storeIdInput">店舗ID</label>
               <input
                 id="storeIdInput"
                 type="text"
-                style={styles.stockInput}
+                style={styles.inputField}
                 value={storeId}
                 onChange={(e) => setStoreId(e.target.value)}
                 disabled={uploading}
                 placeholder="0001"
               />
             </div>
-            <div style={styles.stockContainer}>
-              <label style={styles.stockLabel} htmlFor="stockInput">在庫数を入力（一括）</label>
+            <div style={styles.inputRow}>
+              <label style={styles.inputLabel} htmlFor="stockInput">在庫数（一括入力）</label>
               <input
                 id="stockInput"
                 type="number"
                 min="1"
-                style={styles.stockInput}
+                style={styles.inputField}
                 value={stockQuantity}
                 onChange={(e) => setStockQuantity(e.target.value === '' ? '' : Number(e.target.value))}
                 disabled={uploading}
@@ -571,13 +695,18 @@ export default function StaffPage({ onNavigate }) {
         )}
 
         <button
-          style={{ ...styles.uploadButton, backgroundColor: isBtnDisabled ? "#a5b4fc" : "#10b981", marginBottom: "8px", ...(btnHover2 && !isBtnDisabled ? { backgroundColor: "#059669" } : {}) }}
+          style={{
+            ...styles.actionButton(isBtnDisabled, uploading ? COLOR.primary : COLOR.success),
+            ...(btnHover && !isBtnDisabled ? { backgroundColor: COLOR.successHover } : {}),
+          }}
           onClick={handleProcessAll}
           disabled={isBtnDisabled}
-          onMouseEnter={() => setBtnHover2(true)}
-          onMouseLeave={() => setBtnHover2(false)}
+          onMouseEnter={() => setBtnHover(true)}
+          onMouseLeave={() => setBtnHover(false)}
         >
-          {uploading ? "分析中..." : `画像保存 ＆ AI分析を実行 (残り${filesState.filter(f => !f.analysis_result).length}件)`}
+          {uploading
+            ? "🔄 分析中..."
+            : `🚀 画像保存 ＆ AI分析を実行（${filesState.filter(f => !f.analysis_result).length}件）`}
         </button>
       </div>
     </div>
