@@ -30,7 +30,7 @@ export default function TopPage({ onNavigate }) {
         </button>
         <button
           style={styles.btn("#6366f1")} 
-          onClick={() => window.location.href = INVENTORY_URL}
+          onClick={() => window.location.href = https://prod.dlv6xelof2itp.amplifyapp.com/subscribe.html}
           onMouseEnter={e => e.currentTarget.style.backgroundColor = "#4338ca"}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = "#6366f1"}
         >
