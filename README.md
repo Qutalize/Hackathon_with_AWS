@@ -23,15 +23,15 @@
   <tr>
     <td align="center">
       <b>通知用メール登録画面</b><br>
-      <img src="images/F1-1.png" width="200" alt="機能1-1">
+      <img src="images/F1-1.png" width="150" alt="機能1-1">
     </td>
     <td align="center">
       <b>登録完了メール</b><br>
-      <img src="images/F1-2.png" width="200" alt="機能1-2">
+      <img src="images/F1-2.png" width="150" alt="機能1-2">
     </td>
     <td align="center">
       <b>仕入れ増加量予測通知メール</b><br>
-      <img src="images/F1-3.png" width="200" alt="機能1-3">
+      <img src="images/F1-3.png" width="150" alt="機能1-3">
     </td>
   </tr>
 
@@ -41,25 +41,25 @@
   <tr>
     <td align="center">
       <b>画像アップロード画面</b><br>
-      <img src="images/F2-1-1.png" width="200" alt="機能2-1-1">
+      <img src="images/F2-1-1.png" width="150" alt="機能2-1-1">
     </td>
     <td align="center">
       <b>画像投稿の様子</b><br>
-      <img src="images/F2-1-2.png" width="200" alt="機能2-1-2">
+      <img src="images/F2-1-2.png" width="150" alt="機能2-1-2">
     </td>
     <td align="center">
       <b>分析・判定の様子</b><br>
-      <img src="images/F2-1-3.png" width="200" alt="機能2-1-3">
+      <img src="images/F2-1-3.png" width="150" alt="機能2-1-3">
     </td>
   </tr>
   <tr>
     <td align="center">
       <b>近隣店舗検索</b><br>
-      <img src="images/F2-2-1.png" width="200" alt="機能2-2-1">
+      <img src="images/F2-2-1.png" width="150" alt="機能2-2-1">
     </td>
     <td align="center">
       <b>店舗検索結果</b><br>
-      <img src="images/F2-2-2.png" width="200" alt="機能2-2-2">
+      <img src="images/F2-2-2.png" width="150" alt="機能2-2-2">
     </td>
   </tr>
 
@@ -69,19 +69,19 @@
   <tr>
     <td align="center">
       <b>分析結果①</b><br>
-      <img src="images/F3-1.png" width="200" alt="機能3-1">
+      <img src="images/F3-1.png" width="150" alt="機能3-1">
     </td>
     <td align="center">
       <b>分析結果②</b><br>
-      <img src="images/F3-2.png" width="200" alt="機能3-2">
+      <img src="images/F3-2.png" width="150" alt="機能3-2">
     </td>
     <td align="center">
       <b>新商品提案</b><br>
-      <img src="images/F3-3.png" width="200" alt="機能3-3">
+      <img src="images/F3-3.png" width="150" alt="機能3-3">
     </td>
   </tr>
   <tr>
-     <td align="center">
+     <td colspan="3" align="center">
       <b>新商品提案（変なもの）</b><br>
       <img src="images/F3-4.png" width="400" alt="機能3-4">
      </td>
